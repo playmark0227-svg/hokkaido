@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>観光スポット一覧 | ほっかいどう旅手帖</title>
+  <meta name="description" content="北海道の観光スポットをエリア（道央・道南・道東・道北）やカテゴリー（自然・温泉・グルメなど）で絞り込み検索。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800;900&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='75' font-size='80'%3E%F0%9F%8C%B8%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav">
+        <a href="index.html" class="brand">
+          <span class="brand-icon">
+            <svg width="28" height="28" viewBox="0 0 100 100">
+              <path d="M50 18 Q56 32 70 30 Q66 44 76 54 Q62 56 60 70 Q50 60 40 70 Q38 56 24 54 Q34 44 30 30 Q44 32 50 18" fill="white" stroke="#FF9FBA" stroke-width="3" stroke-linejoin="round"/>
+              <circle cx="50" cy="48" r="6" fill="#FFC97A"/>
+            </svg>
+          </span>
+          <span class="brand-text">
+            <strong>ほっかいどう旅手帖</strong>
+            <span>HOKKAIDO TRAVEL NOTE</span>
+          </span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="index.html">ホーム</a></li>
+          <li><a href="spots.html" class="active">観光スポット一覧</a></li>
+          <li><a href="video.html">動画制作サービス</a></li>
+          <li><a href="video.html#contact" class="nav-cta">お問い合わせ</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== Page Hero ===== -->
+  <section class="hero" style="padding: 3rem 0 2rem;">
+    <div class="container">
+      <span class="hero-badge">ぜんぶで60スポット以上</span>
+      <h1 class="hero-title" style="font-size: clamp(1.8rem, 5vw, 3rem)">
+        北海道の<span class="accent">観光スポット</span>一覧
+      </h1>
+      <p class="hero-sub">エリア・テーマで絞り込んで、お好みの旅先を見つけよう。</p>
+    </div>
+  </section>
+
+  <!-- ===== Filter + Grid ===== -->
+  <section class="section" style="padding-top: 1rem">
+    <div class="container">
+
+      <!-- Filter Bar -->
+      <div class="filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="search-input" placeholder="スポット名・地名で検索..." />
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1rem; font-weight: 700; color: var(--text-light); font-size: 0.95rem;">
+        エリアで絞る
+      </div>
+      <div class="filter-chips" style="margin-bottom: 1.5rem;">
+        <button class="chip active" data-group="region" data-region="all">すべて</button>
+        <button class="chip" data-group="region" data-region="doo">🌸 道央</button>
+        <button class="chip" data-group="region" data-region="donan">🏯 道南</button>
+        <button class="chip" data-group="region" data-region="doto">🌲 道東</button>
+        <button class="chip" data-group="region" data-region="dohoku">❄ 道北</button>
+      </div>
+
+      <div style="margin-bottom: 1rem; font-weight: 700; color: var(--text-light); font-size: 0.95rem;">
+        カテゴリーで絞る
+      </div>
+      <div class="filter-chips" style="margin-bottom: 2rem;">
+        <button class="chip active" data-group="category" data-category="all">すべて</button>
+        <button class="chip" data-group="category" data-category="nature">🌳 自然</button>
+        <button class="chip" data-group="category" data-category="city">🏙️ 街・施設</button>
+        <button class="chip" data-group="category" data-category="hotspring">♨️ 温泉</button>
+        <button class="chip" data-group="category" data-category="food">🍜 グルメ</button>
+        <button class="chip" data-group="category" data-category="culture">🏯 文化・歴史</button>
+        <button class="chip" data-group="category" data-category="season">🌸 季節</button>
+      </div>
+
+      <p class="filter-result" id="filter-result"></p>
+
+      <!-- Spots grid -->
+      <div class="spots-grid" id="spots-grid"></div>
+
+      <!-- No results -->
+      <div class="no-results" id="no-results" style="display:none">
+        <div class="no-results-icon">🐻‍❄️</div>
+        <p>該当するスポットが見つかりませんでした。<br>条件を変えてもう一度お試しください。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== Video CTA ===== -->
+  <section class="video-service">
+    <div class="container-narrow">
+      <div class="video-cta-card">
+        <span class="video-pill">PR動画はじめませんか？</span>
+        <h2 class="section-title" style="margin-bottom:1rem">
+          このスポットを<br>もっと魅力的に伝える動画を。
+        </h2>
+        <p style="max-width:560px;margin:0 auto 2rem;color:var(--text-light)">
+          観光地・宿・自治体さま向けに、北海道の魅力を最大限引き出すPR動画を制作しています。
+        </p>
+        <a href="video.html" class="btn btn-primary">
+          動画制作プランを見る
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <svg class="footer-wave" viewBox="0 0 1440 60" preserveAspectRatio="none" width="100%" height="60">
+      <path d="M0 30 Q120 0 240 30 T480 30 T720 30 T960 30 T1200 30 T1440 30 L1440 60 L0 60 Z" fill="#4A3F5F"/>
+    </svg>
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-about">
+          <div class="brand">
+            <span class="brand-icon">
+              <svg width="28" height="28" viewBox="0 0 100 100">
+                <path d="M50 18 Q56 32 70 30 Q66 44 76 54 Q62 56 60 70 Q50 60 40 70 Q38 56 24 54 Q34 44 30 30 Q44 32 50 18" fill="white" stroke="#FFD6E0" stroke-width="3" stroke-linejoin="round"/>
+                <circle cx="50" cy="48" r="6" fill="#FFC97A"/>
+              </svg>
+            </span>
+            <span class="brand-text">
+              <strong>ほっかいどう旅手帖</strong>
+              <span>HOKKAIDO TRAVEL NOTE</span>
+            </span>
+          </div>
+          <p>北海道のすべての観光スポットを、可愛らしく分かりやすくお届けする観光ポータルサイトです。</p>
+        </div>
+        <div class="footer-col">
+          <h4>EXPLORE</h4>
+          <ul>
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="spots.html">観光スポット一覧</a></li>
+            <li><a href="spots.html?region=doo">道央</a></li>
+            <li><a href="spots.html?region=donan">道南</a></li>
+            <li><a href="spots.html?region=doto">道東</a></li>
+            <li><a href="spots.html?region=dohoku">道北</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>SERVICE</h4>
+          <ul>
+            <li><a href="video.html">動画制作について</a></li>
+            <li><a href="video.html#plans">料金プラン</a></li>
+            <li><a href="video.html#contact">お問い合わせ</a></li>
+            <li><a href="video.html#faq">よくある質問</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2026 ほっかいどう旅手帖 | HOKKAIDO TRAVEL NOTE
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/spots.js"></script>
+  <script src="js/icons.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
