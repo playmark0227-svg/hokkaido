@@ -42,10 +42,26 @@ python3 -m http.server 8000
 
 ## 公開方法 (GitHub Pages)
 
-1. リポジトリの Settings → Pages
-2. Source を `Deploy from a branch` に設定
-3. Branch を `main` (もしくは公開したいブランチ) の `/ (root)` に設定
-4. 数分後に `https://<user>.github.io/hokkaido/` で公開される
+このリポジトリには GitHub Actions による自動デプロイ設定 (`.github/workflows/pages.yml`) が含まれています。
+
+### 初回セットアップ (1回だけ)
+
+1. リポジトリの **Settings → Pages** を開く
+2. **Build and deployment → Source** を `GitHub Actions` に変更
+3. 該当ブランチへ push すると自動でビルド & デプロイ
+4. 数分後に下記URLで公開されます
+
+```
+https://playmark0227-svg.github.io/hokkaido/
+```
+
+### 公開対象ブランチ
+
+`.github/workflows/pages.yml` の `on.push.branches` で指定:
+- `main`
+- `claude/hokkaido-tourism-portal-nSnZw` (現在の開発ブランチ)
+
+push 後、リポジトリの **Actions** タブから進行状況を確認できます。
 
 ## カスタマイズメモ
 
