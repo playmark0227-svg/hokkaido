@@ -611,13 +611,50 @@ function showItinerary() {
 // ─────────────────────────────────────────────
 // Wire up
 // ─────────────────────────────────────────────
+let chatStarted = false;
+function maybeStartChat() {
+  if (chatStarted) return;
+  chatStarted = true;
+  startChat();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Wait for Leaflet (deferred) before initializing map
   initMap();
-  startChat();
 
-  $('#reset-chat')?.addEventListener('click', startChat);
-  $('#restart-btn')?.addEventListener('click', startChat);
+  // Auto-start chat once planner section enters viewport
+  const plannerEl = $('#planner');
+  if (plannerEl && 'IntersectionObserver' in window) {
+    const obs = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          maybeStartChat();
+          obs.disconnect();
+        }
+      });
+    }, { threshold: 0.25 });
+    obs.observe(plannerEl);
+  } else {
+    // Fallback: start immediately
+    maybeStartChat();
+  }
+
+  // Smooth-scroll for in-page anchor links
+  $$('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href');
+      if (id.length > 1 && document.querySelector(id)) {
+        e.preventDefault();
+        document.querySelector(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // Re-flow Leaflet after layout settles (in case fonts shift sizing)
+  setTimeout(() => map && map.invalidateSize(), 600);
+
+  $('#reset-chat')?.addEventListener('click', () => { chatStarted = false; maybeStartChat(); });
+  $('#restart-btn')?.addEventListener('click', () => { chatStarted = false; maybeStartChat(); document.querySelector('#planner').scrollIntoView({ behavior: 'smooth' }); });
   $('#swipe-skip')?.addEventListener('click', () => {
     const c = getTopCard(); if (c) finishSwipe(c, 'skip');
   });

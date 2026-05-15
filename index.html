@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="css/style.css" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
-<body>
+<body class="has-fullmap">
 
   <!-- ===== SVG Defs ===== -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -54,31 +54,28 @@
     </div>
   </header>
 
-  <!-- ===== Map Hero ===== -->
-  <section class="map-hero">
-    <div class="container">
-      <div class="map-hero-text">
-        <span class="hero-eyebrow">Map & AI Trip Planner</span>
-        <h1 class="map-hero-title">
-          地図と<span class="marker">AI</span>で<br>
-          つくる、北海道旅。
-        </h1>
-        <p class="map-hero-sub">
-          マップで気になる場所を見つけたり、AIに相談して旅プランを作ったり。<br>
-          スワイプで簡単にお気に入りを絞り込み、あなただけの旅程ができあがります。
-        </p>
-      </div>
+  <!-- ===== Full-screen Map ===== -->
+  <section class="map-full" id="map-section">
+    <div id="map"></div>
 
-      <div class="map-frame">
-        <div id="map" class="hero-map"></div>
-        <div class="map-legend">
-          <span><span class="dot dot-doo"></span>道央</span>
-          <span><span class="dot dot-donan"></span>道南</span>
-          <span><span class="dot dot-doto"></span>道東</span>
-          <span><span class="dot dot-dohoku"></span>道北</span>
-          <span class="legend-fav"><span class="dot dot-fav"></span>選択中</span>
-        </div>
-      </div>
+    <!-- Legend overlay -->
+    <div class="map-overlay-legend">
+      <span class="legend-title">エリア</span>
+      <span><span class="dot dot-doo"></span>道央</span>
+      <span><span class="dot dot-donan"></span>道南</span>
+      <span><span class="dot dot-doto"></span>道東</span>
+      <span><span class="dot dot-dohoku"></span>道北</span>
+      <span class="legend-divider"></span>
+      <span class="legend-fav"><span class="dot dot-fav"></span>選択中</span>
+    </div>
+
+    <!-- Floating CTA -->
+    <div class="map-cta">
+      <p>地図から探すか、AIに相談して旅プランを作ろう</p>
+      <a href="#planner" class="btn" data-scroll>
+        AIに旅プランを相談する
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </a>
     </div>
   </section>
 
@@ -91,12 +88,8 @@
       </div>
 
       <div class="planner-card">
-        <div class="chat-window" id="chat-window" role="log" aria-live="polite">
-          <!-- Messages get appended here by JS -->
-        </div>
-        <div class="chat-input" id="chat-input">
-          <!-- Quick-reply chips or text input injected by JS -->
-        </div>
+        <div class="chat-window" id="chat-window" role="log" aria-live="polite"></div>
+        <div class="chat-input" id="chat-input"></div>
       </div>
 
       <div class="planner-foot">
@@ -105,7 +98,7 @@
     </div>
   </section>
 
-  <!-- ===== Swipe Recommendations ===== -->
+  <!-- ===== Swipe ===== -->
   <section class="swipe-section" id="swipe-section" hidden>
     <div class="container-narrow">
       <div class="section-heading">
@@ -118,11 +111,7 @@
         <div class="swipe-progress">
           <span id="swipe-progress-text">0 / 0</span>
         </div>
-
-        <div class="swipe-deck" id="swipe-deck">
-          <!-- Cards injected by JS -->
-        </div>
-
+        <div class="swipe-deck" id="swipe-deck"></div>
         <div class="swipe-actions">
           <button class="swipe-btn swipe-btn-skip" id="swipe-skip" type="button" aria-label="スキップ">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
@@ -134,7 +123,6 @@
             <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-9.5-9C0 8 3 4 6.5 4c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 4 24 8 21.5 12 19 16.5 12 21 12 21z"/></svg>
           </button>
         </div>
-
         <div class="swipe-empty" id="swipe-empty" hidden>
           <p>すべてのカードを見終わりました ✓</p>
           <button class="btn" id="show-itinerary" type="button">プランを確認する</button>

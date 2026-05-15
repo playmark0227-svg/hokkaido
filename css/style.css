@@ -1521,45 +1521,29 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
    Map / Chat / Swipe / Itinerary — Trip Planner UI
    ============================================================ */
 
-/* ── Map Hero ───────────────────────────────────────────── */
-.map-hero {
-  padding: clamp(2rem, 5vw, 3rem) 0 clamp(2.5rem, 5vw, 3.5rem);
-  position: relative;
+/* ── Full-screen Map ─────────────────────────────────────── */
+:root {
+  --header-h: 82px;
 }
-.map-hero-text {
-  text-align: center;
-  margin-bottom: 1.8rem;
-}
-.map-hero-title {
-  font-family: "Yusei Magic", sans-serif;
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 400;
-  color: var(--ink);
-  line-height: 1.4;
-  margin-bottom: 1rem;
-}
-.map-hero-sub {
-  max-width: 640px;
-  margin: 0 auto;
-  font-size: 1rem;
-  color: var(--ink-light);
-  line-height: 1.95;
-}
+@media (max-width: 720px) { :root { --header-h: 108px; } }
 
-.map-frame {
+/* When index has full-screen map, body shouldn't show washi underneath  */
+body.has-fullmap { background-attachment: scroll; }
+
+.map-full {
   position: relative;
-  background: var(--milk);
-  border: 4px solid var(--ink);
-  border-radius: 22px;
-  box-shadow: var(--pop-lg);
-  overflow: hidden;
-  transform: rotate(-0.4deg);
-}
-.hero-map {
   width: 100%;
-  height: clamp(360px, 55vh, 580px);
+  height: calc(100vh - var(--header-h));
+  height: calc(100dvh - var(--header-h));
   background: var(--paper-warm);
+  border-bottom: 3px solid var(--ink);
+  overflow: hidden;
 }
+#map {
+  width: 100%;
+  height: 100%;
+}
+.leaflet-container { background: var(--paper-warm); }
 /* Leaflet attribution/zoom styling tweaks */
 .leaflet-container { font-family: "Klee One", sans-serif; }
 .leaflet-control-attribution {
@@ -1620,33 +1604,93 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   50% { transform: scale(1.12); }
 }
 
-.map-legend {
+/* Legend overlay on map (top-left) */
+.map-overlay-legend {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 500;
+  background: rgba(255, 252, 244, 0.95);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 0.65rem 0.9rem;
+  box-shadow: var(--pop-sm);
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem 1.2rem;
-  justify-content: center;
-  padding: 0.8rem 1rem;
-  background: var(--milk);
-  border-top: 2.5px dashed var(--washi);
+  flex-direction: column;
+  gap: 0.35rem;
   font-family: "Klee One", sans-serif;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   color: var(--ink);
+  max-width: 160px;
 }
-.map-legend .dot {
+.map-overlay-legend .legend-title {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 0.85rem;
+  color: var(--c-red);
+  padding-bottom: 0.25rem;
+  border-bottom: 1.5px dashed var(--washi);
+  margin-bottom: 0.15rem;
+}
+.map-overlay-legend > span:not(.legend-title):not(.legend-divider) {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+.map-overlay-legend .dot {
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   border: 2px solid var(--ink);
-  vertical-align: middle;
-  margin-right: 0.3rem;
+  flex-shrink: 0;
 }
-.map-legend .dot-doo    { background: #E84A38; }
-.map-legend .dot-donan  { background: #F09040; }
-.map-legend .dot-doto   { background: #6FAE52; }
-.map-legend .dot-dohoku { background: #4A8DC0; }
-.map-legend .dot-fav    { background: #E84A38; width: 16px; height: 16px; box-shadow: 1px 1px 0 var(--ink); }
-.legend-fav { font-weight: 700; }
+.map-overlay-legend .dot-doo    { background: #E84A38; }
+.map-overlay-legend .dot-donan  { background: #F09040; }
+.map-overlay-legend .dot-doto   { background: #6FAE52; }
+.map-overlay-legend .dot-dohoku { background: #4A8DC0; }
+.map-overlay-legend .dot-fav    { background: #E84A38; box-shadow: 1px 1px 0 var(--ink); }
+.map-overlay-legend .legend-divider {
+  height: 1.5px;
+  background: var(--washi);
+  margin: 0.2rem 0 0.1rem;
+  border-radius: 1px;
+}
+.map-overlay-legend .legend-fav { color: var(--c-red); font-weight: 700; }
+
+/* Floating CTA at bottom of map */
+.map-cta {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 3vh, 1.8rem);
+  transform: translateX(-50%);
+  z-index: 500;
+  background: var(--milk);
+  border: 3.5px solid var(--ink);
+  border-radius: 24px;
+  padding: 1.1rem 1.5rem;
+  box-shadow: var(--pop-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: calc(100% - 2rem);
+  width: max-content;
+  text-align: center;
+}
+.map-cta p {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.92rem;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.6;
+}
+.map-cta .btn {
+  font-size: 0.96rem;
+  padding: 0.7rem 1.4rem;
+}
 
 /* ── Planner / Chat ─────────────────────────────────────── */
 .planner-section { padding-top: 1rem; }
@@ -2090,9 +2134,27 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 
 /* Mobile adjustments for planner UI */
 @media (max-width: 640px) {
-  .map-frame { border-width: 3px; border-radius: 16px; }
-  .hero-map { height: 380px; }
-  .map-legend { font-size: 0.78rem; padding: 0.7rem; gap: 0.5rem 1rem; }
+  /* Full-map adjustments */
+  .map-overlay-legend {
+    top: 0.6rem;
+    left: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.72rem;
+    gap: 0.25rem;
+    max-width: 130px;
+  }
+  .map-overlay-legend .legend-title { font-size: 0.78rem; }
+  .map-overlay-legend .dot { width: 10px; height: 10px; }
+  .map-cta {
+    padding: 0.85rem 1rem;
+    border-radius: 18px;
+    bottom: 0.8rem;
+    gap: 0.55rem;
+    border-width: 3px;
+  }
+  .map-cta p { font-size: 0.84rem; }
+  .map-cta .btn { font-size: 0.88rem; padding: 0.6rem 1.1rem; }
+
   .planner-card { padding: 1.1rem; min-height: 340px; }
   .chat-window { max-height: 380px; }
   .chat-bubble { font-size: 0.9rem; max-width: 82%; }
