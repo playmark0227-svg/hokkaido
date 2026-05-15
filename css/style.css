@@ -41,22 +41,20 @@ body {
   font-family: "Klee One", "Yusei Magic", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
   font-weight: 600;
   color: var(--ink);
-  background: var(--paper);
+  background-color: var(--paper);
   line-height: 1.85;
   letter-spacing: 0.03em;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 
-  /* 画用紙テクスチャ */
+  /* 和紙テクスチャ + ほんのり明るくするオーバーレイ */
   background-image:
-    radial-gradient(circle at 1px 1px, rgba(61, 40, 23, 0.08) 1px, transparent 0),
-    repeating-linear-gradient(45deg,
-      transparent 0, transparent 6px,
-      rgba(61, 40, 23, 0.012) 6px, rgba(61, 40, 23, 0.012) 7px),
-    repeating-linear-gradient(-45deg,
-      transparent 0, transparent 6px,
-      rgba(61, 40, 23, 0.012) 6px, rgba(61, 40, 23, 0.012) 7px);
-  background-size: 26px 26px, auto, auto;
+    linear-gradient(rgba(255, 249, 238, 0.32), rgba(255, 249, 238, 0.32)),
+    url("../assets/bg-washi.jpg");
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
 }
 
 img { max-width: 100%; display: block; }
@@ -1116,10 +1114,12 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 
 /* ===== Section backgrounds ===== */
 .section-alt {
-  background: var(--paper-warm);
+  background: rgba(253, 239, 207, 0.55);
   border-top: 3px solid var(--ink);
   border-bottom: 3px solid var(--ink);
   position: relative;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 
 /* Process steps */
