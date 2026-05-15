@@ -32,6 +32,12 @@
   --pop:    4px 4px 0 var(--ink);
   --pop-lg: 6px 6px 0 var(--ink);
   --pop-sm: 3px 3px 0 var(--ink);
+
+  /* 和紙テクスチャの再利用変数 */
+  --washi-img:   url("../assets/bg-washi.jpg");
+  --washi-card:  linear-gradient(rgba(255, 252, 244, 0.78), rgba(255, 252, 244, 0.78)), url("../assets/bg-washi.jpg");
+  --washi-card-light: linear-gradient(rgba(255, 252, 244, 0.62), rgba(255, 252, 244, 0.62)), url("../assets/bg-washi.jpg");
+  --washi-card-warm:  linear-gradient(rgba(253, 239, 207, 0.55), rgba(253, 239, 207, 0.55)), url("../assets/bg-washi.jpg");
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,9 +53,9 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 
-  /* 和紙テクスチャ + ほんのり明るくするオーバーレイ */
+  /* 和紙テクスチャ + ごく薄いオーバーレイで質感をいかす */
   background-image:
-    linear-gradient(rgba(255, 249, 238, 0.32), rgba(255, 249, 238, 0.32)),
+    linear-gradient(rgba(255, 249, 238, 0.18), rgba(255, 249, 238, 0.18)),
     url("../assets/bg-washi.jpg");
   background-size: cover;
   background-position: center center;
@@ -381,7 +387,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 }
 .stat {
   text-align: center;
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 300px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 18px;
   padding: 1.1rem 0.5rem;
@@ -414,7 +422,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   gap: 1.6rem;
 }
 .region-card {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 400px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 24px;
   padding: 1.6rem 1.2rem;
@@ -498,7 +508,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 }
 
 .spot-card {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 500px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 16px;
   overflow: hidden;
@@ -636,7 +648,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 
 /* ===== Filter Bar ===== */
 .filter-bar {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 800px auto;
+  background-position: center;
   padding: 1.4rem;
   border: 3px solid var(--ink);
   border-radius: 20px;
@@ -743,7 +757,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .no-results {
   text-align: center;
   padding: 4rem 1rem;
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 700px auto;
+  background-position: center;
   border: 3px dashed var(--ink-muted);
   border-radius: 20px;
 }
@@ -779,7 +795,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 }
 
 .video-cta-card {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 1000px auto;
+  background-position: center;
   color: var(--ink);
   padding: clamp(2rem, 5vw, 3rem);
   position: relative;
@@ -816,7 +834,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 }
 .video-feature {
   padding: 1.5rem;
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 500px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 18px;
   transition: all .25s;
@@ -865,7 +885,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   margin: 2.5rem 0;
 }
 .price-card {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 500px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 22px;
   padding: 2rem 1.5rem;
@@ -959,7 +981,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   gap: 1rem;
 }
 .faq-item {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 800px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 18px;
   padding: 1.3rem 1.5rem;
@@ -1130,7 +1154,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   counter-reset: step;
 }
 .process-step {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 400px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 20px;
   padding: 1.8rem 1.4rem;
@@ -1257,7 +1283,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 }
 
 .example-card {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 500px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 16px;
   overflow: hidden;
@@ -1395,7 +1423,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 
 /* ===== Comparison Table ===== */
 .comparison-wrap {
-  background: var(--milk);
+  background: var(--washi-card);
+  background-size: 1000px auto;
+  background-position: center;
   border: 3px solid var(--ink);
   border-radius: 18px;
   padding: 0.6rem;
