@@ -3,35 +3,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>観光スポット一覧 | ほっかいどう旅手帖</title>
-  <meta name="description" content="北海道の観光スポットをエリア（道央・道南・道東・道北）やカテゴリー（自然・温泉・グルメなど）で絞り込み検索。" />
+  <title>観光スポット | ほっかいどう旅手帖</title>
+  <meta name="description" content="北海道の観光スポットをエリアやテーマで絞り込み検索。" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700;900&family=Shippori+Mincho+B1:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231B3A5F'/%3E%3Ccircle cx='70' cy='34' r='14' fill='%23B5392D'/%3E%3Cpolygon points='15,76 50,28 85,76' fill='%23FBF7EC'/%3E%3Cpolygon points='50,28 62,46 38,46' fill='%231B3A5F'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
 <body>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <filter id="crayon-rough" x="-5%" y="-5%" width="110%" height="110%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4" result="noise"/>
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2"/>
+      </filter>
+    </defs>
+  </svg>
 
   <header class="site-header">
     <div class="container">
       <nav class="nav">
         <a href="index.html" class="brand">
           <span class="brand-icon">
-            <svg width="32" height="32" viewBox="0 0 100 100">
-              <circle cx="70" cy="34" r="14" fill="#B5392D"/>
-              <polygon points="15,76 50,28 85,76" fill="#FBF7EC"/>
-              <polygon points="50,28 62,46 38,46" fill="#1B3A5F"/>
+            <svg width="52" height="52" viewBox="0 0 100 100">
+              <polygon points="50,12 88,80 12,80" fill="#F5C342" stroke="#3D2817" stroke-width="5" stroke-linejoin="round"/>
+              <polygon points="50,12 64,38 36,38" fill="#FFF9EE" stroke="#3D2817" stroke-width="3.5" stroke-linejoin="round"/>
+              <line x1="50" y1="12" x2="50" y2="4" stroke="#3D2817" stroke-width="3" stroke-linecap="round"/>
+              <polygon points="50,3 68,8 50,13" fill="#E84A38" stroke="#3D2817" stroke-width="2"/>
+              <circle cx="76" cy="22" r="6" fill="#E84A38" stroke="#3D2817" stroke-width="2.5"/>
             </svg>
           </span>
           <span class="brand-text">
             <strong>ほっかいどう旅手帖</strong>
-            <span>HOKKAIDO TRAVEL NOTE</span>
+            <span>Hokkaido Travel Note</span>
           </span>
         </a>
         <ul class="nav-links">
           <li><a href="index.html">ホーム</a></li>
-          <li><a href="spots.html" class="active">観光スポット一覧</a></li>
+          <li><a href="spots.html" class="active">観光スポット</a></li>
           <li><a href="video.html">動画制作</a></li>
           <li><a href="video.html#contact" class="nav-cta">お問い合わせ</a></li>
         </ul>
@@ -40,66 +51,70 @@
   </header>
 
   <!-- ===== Page Hero ===== -->
-  <section class="hero" style="padding: clamp(3rem, 6vw, 4rem) 0;">
+  <section class="hero" style="padding: clamp(2rem, 5vw, 3.5rem) 0;">
+    <svg class="doodle" style="top:10%;left:6%;width:50px;height:50px;transform:rotate(-15deg)" viewBox="0 0 50 50">
+      <path d="M25 5 L31 20 L47 20 L34 30 L39 46 L25 36 L11 46 L16 30 L3 20 L19 20 Z" fill="#F5C342" stroke="#3D2817" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
+    <svg class="doodle" style="top:14%;right:6%;width:50px;height:50px;transform:rotate(15deg)" viewBox="0 0 50 50">
+      <path d="M25 8 Q15 8 15 18 Q15 28 25 42 Q35 28 35 18 Q35 8 25 8" fill="#ED8DAB" stroke="#3D2817" stroke-width="3" stroke-linejoin="round"/>
+    </svg>
     <div class="container" style="text-align: center;">
-      <p class="hero-eyebrow">ALL DESTINATIONS</p>
+      <span class="hero-eyebrow">All Destinations ♪</span>
       <h1 class="hero-title" style="font-size: clamp(2rem, 5vw, 3rem)">
-        観光スポット一覧
+        <span class="marker">観光スポット</span>いちらん
       </h1>
       <p class="hero-sub" style="margin: 0 auto;">
-        エリア・テーマで絞り込んで、<br>
-        あなたの旅にぴったりの目的地を見つけよう。
+        エリアやテーマで絞り込んで、<br>
+        あなたの旅にぴったりの目的地を見つけよう ♪
       </p>
     </div>
   </section>
 
   <!-- ===== Filter + Grid ===== -->
-  <section class="section" style="padding-top: 2rem">
+  <section class="section" style="padding-top: 1.5rem">
     <div class="container">
 
       <div class="filter-bar">
         <div class="search-box">
-          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D2817" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input type="text" id="search-input" placeholder="スポット名・地名で検索..." />
         </div>
       </div>
 
-      <p class="filter-label">エリアで絞る / By Area</p>
-      <div class="filter-chips" style="margin-bottom: 2rem;">
-        <button class="chip active" data-group="region" data-region="all">すべて</button>
+      <p class="filter-label">エリアで絞る ♪</p>
+      <div class="filter-chips" style="margin-bottom: 1.6rem;">
+        <button class="chip active" data-group="region" data-region="all">ぜんぶ</button>
         <button class="chip" data-group="region" data-region="doo">道央</button>
         <button class="chip" data-group="region" data-region="donan">道南</button>
         <button class="chip" data-group="region" data-region="doto">道東</button>
         <button class="chip" data-group="region" data-region="dohoku">道北</button>
       </div>
 
-      <p class="filter-label">テーマで絞る / By Theme</p>
-      <div class="filter-chips" style="margin-bottom: 2rem;">
-        <button class="chip active" data-group="category" data-category="all">すべて</button>
-        <button class="chip" data-group="category" data-category="nature">自然</button>
-        <button class="chip" data-group="category" data-category="city">街・施設</button>
-        <button class="chip" data-group="category" data-category="hotspring">温泉</button>
-        <button class="chip" data-group="category" data-category="food">グルメ</button>
-        <button class="chip" data-group="category" data-category="culture">文化・歴史</button>
-        <button class="chip" data-group="category" data-category="season">季節</button>
+      <p class="filter-label">テーマで絞る ♪</p>
+      <div class="filter-chips" style="margin-bottom: 1.8rem;">
+        <button class="chip active" data-group="category" data-category="all">ぜんぶ</button>
+        <button class="chip" data-group="category" data-category="nature">🌳 自然</button>
+        <button class="chip" data-group="category" data-category="city">🏙️ 街・施設</button>
+        <button class="chip" data-group="category" data-category="hotspring">♨️ 温泉</button>
+        <button class="chip" data-group="category" data-category="food">🍜 グルメ</button>
+        <button class="chip" data-group="category" data-category="culture">🏯 文化・歴史</button>
+        <button class="chip" data-group="category" data-category="season">🌸 季節</button>
       </div>
 
       <p class="filter-result" id="filter-result"></p>
 
-      <!-- Spots grid -->
       <div class="spots-grid" id="spots-grid"></div>
 
-      <!-- No results -->
       <div class="no-results" id="no-results" style="display:none">
         <div class="no-results-icon">
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="44" fill="none" stroke="#1B3A5F" stroke-width="2"/>
-            <line x1="32" y1="35" x2="44" y2="42" stroke="#1B3A5F" stroke-width="2.5" stroke-linecap="round"/>
-            <line x1="68" y1="35" x2="56" y2="42" stroke="#1B3A5F" stroke-width="2.5" stroke-linecap="round"/>
-            <path d="M35 70 Q50 60 65 70" stroke="#1B3A5F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="40" fill="#FFF9EE" stroke="#3D2817" stroke-width="4"/>
+            <line x1="35" y1="38" x2="42" y2="45" stroke="#3D2817" stroke-width="3.5" stroke-linecap="round"/>
+            <line x1="65" y1="38" x2="58" y2="45" stroke="#3D2817" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M35 68 Q50 60 65 68" stroke="#3D2817" stroke-width="3.5" fill="none" stroke-linecap="round"/>
           </svg>
         </div>
-        <p>該当するスポットが見つかりませんでした。<br>条件を変えてもう一度お試しください。</p>
+        <p>該当するスポットが見つかりませんでした。<br>条件を変えてもう一度試してみてね ♪</p>
       </div>
 
     </div>
@@ -109,18 +124,19 @@
   <section class="video-service">
     <div class="container-narrow">
       <div class="video-cta-card">
-        <span class="video-pill">VIDEO SERVICE</span>
-        <h2 class="section-title" style="text-align:center;margin-bottom:1rem">
-          このスポットを、<br>動画でもっと魅力的に。
+        <span class="video-pill">♪ Video Service</span>
+        <h2 class="section-title" style="text-align:center;margin-bottom:1.2rem">
+          このスポットを、<br>動画でもっと素敵に。
         </h2>
-        <p class="section-subtitle" style="text-align:center;margin-bottom:2rem">PR Video Production</p>
-        <p style="max-width:560px;margin:0 auto 2.2rem;color:var(--gray);text-align:center;line-height:2">
-          観光地・宿・自治体さま向けに、北海道の魅力を最大限引き出すPR映像を制作しています。
+        <p class="section-sub" style="text-align:center;margin-bottom:2rem">— PR Video Production —</p>
+        <p style="max-width:540px;margin:0 auto 2rem;color:var(--ink-light);text-align:center;line-height:2;font-family:'Klee One',sans-serif">
+          観光地・宿・自治体さま向けに、<br>
+          北海道の魅力を最大限引き出すPR動画を制作中 ♪
         </p>
         <div style="text-align:center">
-          <a href="video.html" class="btn btn-primary">
+          <a href="video.html" class="btn">
             動画制作プランを見る
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
           </a>
         </div>
       </div>
@@ -133,24 +149,25 @@
         <div class="footer-about">
           <div class="brand">
             <span class="brand-icon">
-              <svg width="32" height="32" viewBox="0 0 100 100">
-                <circle cx="70" cy="34" r="14" fill="#B5392D"/>
-                <polygon points="15,76 50,28 85,76" fill="#1B3A5F"/>
-                <polygon points="50,28 62,46 38,46" fill="#FBF7EC"/>
+              <svg width="52" height="52" viewBox="0 0 100 100">
+                <polygon points="50,12 88,80 12,80" fill="#F5C342" stroke="#3D2817" stroke-width="5" stroke-linejoin="round"/>
+                <polygon points="50,12 64,38 36,38" fill="#FFF9EE" stroke="#3D2817" stroke-width="3.5" stroke-linejoin="round"/>
+                <line x1="50" y1="12" x2="50" y2="4" stroke="#3D2817" stroke-width="3" stroke-linecap="round"/>
+                <polygon points="50,3 68,8 50,13" fill="#E84A38" stroke="#3D2817" stroke-width="2"/>
               </svg>
             </span>
             <span class="brand-text">
               <strong>ほっかいどう旅手帖</strong>
-              <span>HOKKAIDO TRAVEL NOTE</span>
+              <span>Hokkaido Travel Note</span>
             </span>
           </div>
-          <p>北海道のすべての観光スポットを、編集デザイン的にお届けする観光ポータルサイトです。</p>
+          <p>北海道のすべての観光スポットを、絵本タッチでお届けする観光ポータルサイト。</p>
         </div>
         <div class="footer-col">
-          <h4>Explore</h4>
+          <h4>♪ Explore</h4>
           <ul>
             <li><a href="index.html">ホーム</a></li>
-            <li><a href="spots.html">観光スポット一覧</a></li>
+            <li><a href="spots.html">観光スポット</a></li>
             <li><a href="spots.html?region=doo">道央</a></li>
             <li><a href="spots.html?region=donan">道南</a></li>
             <li><a href="spots.html?region=doto">道東</a></li>
@@ -158,7 +175,7 @@
           </ul>
         </div>
         <div class="footer-col">
-          <h4>Service</h4>
+          <h4>♪ Service</h4>
           <ul>
             <li><a href="video.html">動画制作について</a></li>
             <li><a href="video.html#plans">料金プラン</a></li>
@@ -168,7 +185,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        &copy; 2026 ほっかいどう旅手帖 — HOKKAIDO TRAVEL NOTE
+        ©︎ 2026 ほっかいどう旅手帖 ♪ Made with crayons
       </div>
     </div>
   </footer>

@@ -12,7 +12,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['culture', 'city'],
     icon: 'clock',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '札幌のシンボルとして親しまれている、明治時代に建てられた美しい時計台。重要文化財にも指定されています。',
     bestSeason: '通年',
     accessTime: 'JR札幌駅から徒歩約10分'
@@ -25,7 +25,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['city'],
     icon: 'tower',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '大通公園のシンボル。展望台からは札幌の街並みを一望でき、夜景も絶景です。',
     bestSeason: '通年',
     accessTime: '地下鉄大通駅から徒歩1分'
@@ -38,7 +38,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['city', 'season'],
     icon: 'park',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '札幌中心部を東西に伸びる細長い公園。雪まつりやライラックまつりなど四季折々のイベントが楽しめます。',
     bestSeason: '通年',
     accessTime: '地下鉄大通駅すぐ'
@@ -51,7 +51,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['culture'],
     icon: 'torii',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '北海道開拓の守り神を祀る神社。春には桜と梅が同時に咲き誇る花の名所です。',
     bestSeason: '春',
     accessTime: '地下鉄円山公園駅から徒歩15分'
@@ -64,7 +64,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['nature', 'culture'],
     icon: 'pyramid',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '彫刻家イサム・ノグチが基本設計した広大な公園。ガラスのピラミッドや幾何学的な造形が美しい。',
     bestSeason: '春〜秋',
     accessTime: '地下鉄環状通東駅からバス約25分'
@@ -77,7 +77,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['food', 'culture'],
     icon: 'cookie',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '北海道銘菓「白い恋人」の工場見学やお菓子作り体験ができるテーマパーク。',
     bestSeason: '通年',
     accessTime: '地下鉄宮の沢駅から徒歩7分'
@@ -90,7 +90,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['city'],
     icon: 'bear',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: 'ホッキョクグマやレッサーパンダなど可愛らしい動物たちに出会える動物園。',
     bestSeason: '通年',
     accessTime: '地下鉄円山公園駅から徒歩15分'
@@ -103,7 +103,7 @@ const SPOTS = [
     area: '小樽',
     categories: ['city', 'culture'],
     icon: 'canal',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: 'レトロな倉庫群とガス灯が美しい運河。夕暮れ時のロマンチックな景色が人気。',
     bestSeason: '通年',
     accessTime: 'JR小樽駅から徒歩約8分'
@@ -116,7 +116,7 @@ const SPOTS = [
     area: '小樽',
     categories: ['culture', 'city'],
     icon: 'music',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '世界中から集められた数万点のオルゴールが並ぶ夢の空間。蒸気時計も必見。',
     bestSeason: '通年',
     accessTime: 'JR南小樽駅から徒歩7分'
@@ -129,7 +129,7 @@ const SPOTS = [
     area: '余市',
     categories: ['food', 'culture'],
     icon: 'bottle',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '日本のウイスキー発祥の地。石造りの蒸溜棟や試飲も楽しめます。',
     bestSeason: '通年',
     accessTime: 'JR余市駅から徒歩3分'
@@ -142,7 +142,7 @@ const SPOTS = [
     area: 'ニセコ',
     categories: ['nature', 'season'],
     icon: 'mountain',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '世界有数のパウダースノーで知られる国際的スキーリゾート。夏はラフティングも人気。',
     bestSeason: '冬',
     accessTime: 'JR倶知安駅から車で15分'
@@ -155,7 +155,7 @@ const SPOTS = [
     area: '洞爺',
     categories: ['nature', 'hotspring'],
     icon: 'lake',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: 'カルデラ湖と中島が織りなす絶景。湖畔の温泉と毎晩開催される花火も魅力。',
     bestSeason: '春〜秋',
     accessTime: 'JR洞爺駅からバス約20分'
@@ -168,7 +168,7 @@ const SPOTS = [
     area: '壮瞥',
     categories: ['nature'],
     icon: 'volcano',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '1944年の噴火で誕生した活火山。今もなお白い噴煙を上げる特別天然記念物。',
     bestSeason: '通年',
     accessTime: 'JR洞爺駅からバス約45分'
@@ -181,7 +181,7 @@ const SPOTS = [
     area: '登別',
     categories: ['hotspring', 'nature'],
     icon: 'onsen',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '9種類もの泉質を誇る日本屈指の温泉郷。地獄谷の自然美と湯けむりが魅力。',
     bestSeason: '通年',
     accessTime: 'JR登別駅からバス約15分'
@@ -194,7 +194,7 @@ const SPOTS = [
     area: '登別',
     categories: ['nature', 'hotspring'],
     icon: 'steam',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '直径約450mの爆裂火口跡。荒々しい岩肌から立ち上る湯けむりは圧巻。',
     bestSeason: '通年',
     accessTime: '登別温泉バスターミナルから徒歩10分'
@@ -207,7 +207,7 @@ const SPOTS = [
     area: '千歳',
     categories: ['nature'],
     icon: 'lake',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '日本屈指の水質を誇るカルデラ湖。透明度が高く神秘的な「支笏湖ブルー」が魅力。',
     bestSeason: '春〜秋',
     accessTime: 'JR千歳駅からバス約45分'
@@ -220,7 +220,7 @@ const SPOTS = [
     area: '富良野',
     categories: ['nature', 'season'],
     icon: 'flower',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '7月に見頃を迎えるラベンダー畑。紫の絨毯が広がる景色は北海道の夏の象徴。',
     bestSeason: '夏',
     accessTime: 'JR中富良野駅から徒歩約25分'
@@ -233,7 +233,7 @@ const SPOTS = [
     area: '富良野',
     categories: ['nature', 'season', 'food'],
     icon: 'flower',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: 'ドラマ「北の国から」の舞台。花畑、ワイン、チーズ工房など魅力たっぷり。',
     bestSeason: '夏',
     accessTime: 'JR富良野駅周辺'
@@ -246,7 +246,7 @@ const SPOTS = [
     area: '美瑛',
     categories: ['nature'],
     icon: 'pond',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: 'コバルトブルーに輝く幻想的な池。Apple社のMac壁紙にも採用された絶景。',
     bestSeason: '春〜秋',
     accessTime: 'JR美瑛駅からバス約20分'
@@ -259,7 +259,7 @@ const SPOTS = [
     area: '美瑛',
     categories: ['nature', 'season'],
     icon: 'hill',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '美瑛の丘陵地帯に広がる色とりどりの畑。CMにもなった「セブンスターの木」が有名。',
     bestSeason: '夏',
     accessTime: 'JR美瑛駅から車で10分'
@@ -272,7 +272,7 @@ const SPOTS = [
     area: '美瑛',
     categories: ['nature'],
     icon: 'waterfall',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '岩の隙間から湧き出るブルーリバーが流れ込む幻想的な滝。冬のライトアップも美しい。',
     bestSeason: '通年',
     accessTime: 'JR美瑛駅から車で約30分'
@@ -285,7 +285,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['season', 'culture'],
     icon: 'snowflake',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '毎年2月に開催される世界的に有名な雪と氷の祭典。巨大な雪像が街を彩ります。',
     bestSeason: '冬',
     accessTime: '大通公園・すすきの・つどーむ'
@@ -300,7 +300,7 @@ const SPOTS = [
     area: '函館',
     categories: ['nature', 'city'],
     icon: 'nightview',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '世界三大夜景に数えられる函館の絶景。扇形に広がるきらめく夜景は息をのむ美しさ。',
     bestSeason: '通年',
     accessTime: 'ロープウェイ約3分'
@@ -313,7 +313,7 @@ const SPOTS = [
     area: '函館',
     categories: ['culture', 'season'],
     icon: 'star',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '星形の城郭が美しい特別史跡。春には約1,600本の桜が咲き誇る花見の名所。',
     bestSeason: '春',
     accessTime: '函館市電五稜郭公園前から徒歩15分'
@@ -326,7 +326,7 @@ const SPOTS = [
     area: '函館',
     categories: ['food', 'city'],
     icon: 'crab',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '新鮮な海の幸が並ぶ活気あふれる市場。海鮮丼やイカ釣り体験が人気。',
     bestSeason: '通年',
     accessTime: 'JR函館駅から徒歩1分'
@@ -339,7 +339,7 @@ const SPOTS = [
     area: '函館',
     categories: ['culture', 'city'],
     icon: 'church',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '異国情緒あふれる坂の街。教会やレトロな洋館が立ち並びフォトジェニック。',
     bestSeason: '通年',
     accessTime: '函館市電十字街から徒歩5分'
@@ -352,7 +352,7 @@ const SPOTS = [
     area: '函館',
     categories: ['city', 'food'],
     icon: 'warehouse',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: 'ベイエリアに佇む明治期のレンガ倉庫群。ショッピングやグルメが楽しめます。',
     bestSeason: '通年',
     accessTime: '函館市電十字街から徒歩5分'
@@ -365,7 +365,7 @@ const SPOTS = [
     area: '函館',
     categories: ['hotspring'],
     icon: 'onsen',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '函館の奥座敷。津軽海峡を眺めながら浸かれる海辺の温泉郷。',
     bestSeason: '通年',
     accessTime: '函館市電湯の川温泉から徒歩5分'
@@ -378,7 +378,7 @@ const SPOTS = [
     area: '七飯',
     categories: ['nature'],
     icon: 'lake',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '駒ヶ岳を背景にした湖沼群が美しい公園。サイクリングやボート遊びが楽しめます。',
     bestSeason: '春〜秋',
     accessTime: 'JR大沼公園駅から徒歩5分'
@@ -391,7 +391,7 @@ const SPOTS = [
     area: '松前',
     categories: ['culture', 'season'],
     icon: 'castle',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '日本最北の城下町。約250種・1万本の桜が咲く北の桜の名所。',
     bestSeason: '春',
     accessTime: '函館から車で約2時間'
@@ -404,7 +404,7 @@ const SPOTS = [
     area: '江差',
     categories: ['culture'],
     icon: 'ship',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: 'ニシン漁で栄えた港町。古い町並みと江差追分の伝統文化が残る。',
     bestSeason: '通年',
     accessTime: '函館から車で約1時間30分'
@@ -417,7 +417,7 @@ const SPOTS = [
     area: '函館',
     categories: ['culture'],
     icon: 'church',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '日本初の女子観想修道院。レンガ造りの優雅な建物と修道院クッキーが人気。',
     bestSeason: '通年',
     accessTime: 'JR函館駅からバス約30分'
@@ -432,7 +432,7 @@ const SPOTS = [
     area: '釧路',
     categories: ['nature'],
     icon: 'crane',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '日本最大の湿原。タンチョウヅルの生息地として知られるラムサール条約登録地。',
     bestSeason: '通年',
     accessTime: 'JR釧路駅から車で約30分'
@@ -445,7 +445,7 @@ const SPOTS = [
     area: '釧路',
     categories: ['nature', 'hotspring'],
     icon: 'lake',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: 'マリモが生息する神秘の湖。アイヌコタンの文化と温泉が楽しめる癒しのスポット。',
     bestSeason: '通年',
     accessTime: 'JR釧路駅からバス約2時間'
@@ -458,7 +458,7 @@ const SPOTS = [
     area: '弟子屈',
     categories: ['nature'],
     icon: 'lake',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '世界屈指の透明度を誇る神秘の湖。「霧の摩周湖」と呼ばれる幻想的な景色。',
     bestSeason: '夏',
     accessTime: 'JR摩周駅から車で約20分'
@@ -471,7 +471,7 @@ const SPOTS = [
     area: '弟子屈',
     categories: ['nature', 'hotspring'],
     icon: 'lake',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '日本最大のカルデラ湖。湖畔の砂を掘ると温泉が湧く砂湯が名物。',
     bestSeason: '春〜秋',
     accessTime: 'JR川湯温泉駅から車で約20分'
@@ -484,7 +484,7 @@ const SPOTS = [
     area: '斜里',
     categories: ['nature'],
     icon: 'forest',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '世界自然遺産に登録された手つかずの大自然。ヒグマやエゾシカに出会える秘境。',
     bestSeason: '夏〜秋',
     accessTime: 'JR知床斜里駅からバス約50分'
@@ -497,7 +497,7 @@ const SPOTS = [
     area: '斜里',
     categories: ['nature'],
     icon: 'forest',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '原生林の中に点在する5つの湖。高架木道から知床連山と湖を一望できます。',
     bestSeason: '夏',
     accessTime: 'ウトロ温泉から車で約20分'
@@ -510,7 +510,7 @@ const SPOTS = [
     area: '斜里',
     categories: ['nature'],
     icon: 'waterfall',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '「日本の滝百選」に選ばれた知床を代表する滝。二筋に分かれて流れる姿が美しい。',
     bestSeason: '通年',
     accessTime: 'JR知床斜里駅から車で約30分'
@@ -523,7 +523,7 @@ const SPOTS = [
     area: '網走',
     categories: ['season', 'nature'],
     icon: 'iceberg',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '冬の風物詩。流氷砕氷船「おーろら」に乗って大自然の神秘を体験できます。',
     bestSeason: '冬',
     accessTime: 'JR網走駅からバス約10分'
@@ -536,7 +536,7 @@ const SPOTS = [
     area: '網走',
     categories: ['culture'],
     icon: 'building',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '明治時代の監獄を移築復元した野外博物館。北海道開拓の歴史を学べます。',
     bestSeason: '通年',
     accessTime: 'JR網走駅からバス約10分'
@@ -549,7 +549,7 @@ const SPOTS = [
     area: '帯広',
     categories: ['nature', 'food'],
     icon: 'farm',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '広大な農地と牧場が広がる食の宝庫。豚丼や乳製品など絶品グルメも豊富。',
     bestSeason: '通年',
     accessTime: 'JR帯広駅周辺'
@@ -562,7 +562,7 @@ const SPOTS = [
     area: '鹿追',
     categories: ['nature', 'hotspring'],
     icon: 'lake',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '北海道で最も高所にある湖。冬季限定の氷上イグルー村「コタン」が幻想的。',
     bestSeason: '通年',
     accessTime: 'JR帯広駅から車で約1時間30分'
@@ -575,7 +575,7 @@ const SPOTS = [
     area: '根室',
     categories: ['nature'],
     icon: 'lighthouse',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '北海道本土最東端の岬。日本一早い日の出と北方領土を望む景勝地。',
     bestSeason: '通年',
     accessTime: 'JR根室駅からバス約45分'
@@ -588,7 +588,7 @@ const SPOTS = [
     area: '浜中',
     categories: ['nature'],
     icon: 'flower',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '花の湿原と呼ばれる広大な湿地。夏には色とりどりの花々が咲き乱れます。',
     bestSeason: '夏',
     accessTime: 'JR厚岸駅から車で約30分'
@@ -601,7 +601,7 @@ const SPOTS = [
     area: '弟子屈',
     categories: ['hotspring'],
     icon: 'onsen',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '硫黄山のふもとに湧く強酸性の温泉。豊富な湯量で源泉かけ流しを満喫。',
     bestSeason: '通年',
     accessTime: 'JR川湯温泉駅から車で約10分'
@@ -614,7 +614,7 @@ const SPOTS = [
     area: 'えりも',
     categories: ['nature'],
     icon: 'lighthouse',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '日高山脈が海に没する地点に位置する岬。アザラシの生息地としても知られます。',
     bestSeason: '春〜秋',
     accessTime: 'JR様似駅からバス約1時間'
@@ -629,7 +629,7 @@ const SPOTS = [
     area: '旭川',
     categories: ['city'],
     icon: 'penguin',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '行動展示で日本一有名な動物園。ペンギンの散歩やホッキョクグマの泳ぐ姿は必見。',
     bestSeason: '通年',
     accessTime: 'JR旭川駅からバス約40分'
@@ -642,7 +642,7 @@ const SPOTS = [
     area: '旭川',
     categories: ['food'],
     icon: 'ramen',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '旭川の人気ラーメン店が集結。醤油ベースの濃厚スープが特徴の旭川ラーメンを満喫。',
     bestSeason: '通年',
     accessTime: 'JR旭川駅からバス約20分'
@@ -655,7 +655,7 @@ const SPOTS = [
     area: '上川',
     categories: ['nature', 'hotspring', 'season'],
     icon: 'cliff',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '24kmにわたる断崖絶壁の峡谷。紅葉と銀河の滝・流星の滝が絶景。',
     bestSeason: '秋',
     accessTime: 'JR上川駅からバス約30分'
@@ -668,7 +668,7 @@ const SPOTS = [
     area: '上川',
     categories: ['nature', 'season'],
     icon: 'mountain',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '日本最大の国立公園。日本で最も早い紅葉が見られる「神々の遊ぶ庭」。',
     bestSeason: '夏〜秋',
     accessTime: '旭川から車で約2時間'
@@ -681,7 +681,7 @@ const SPOTS = [
     area: '稚内',
     categories: ['nature'],
     icon: 'lighthouse',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '日本最北端の地。晴れた日にはサハリンを望むことができる感動のスポット。',
     bestSeason: '春〜秋',
     accessTime: 'JR稚内駅からバス約50分'
@@ -694,7 +694,7 @@ const SPOTS = [
     area: '稚内',
     categories: ['city', 'food'],
     icon: 'lighthouse',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '日本最北の街。新鮮なウニや毛ガニなど海の幸が豊富で、ノシャップ岬の夕日も美しい。',
     bestSeason: '夏',
     accessTime: 'JR稚内駅'
@@ -707,7 +707,7 @@ const SPOTS = [
     area: '利尻',
     categories: ['nature'],
     icon: 'mountain',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '海に浮かぶ「利尻富士」の異名を持つ独立峰。高山植物と海岸線が美しい島。',
     bestSeason: '夏',
     accessTime: '稚内からフェリー約1時間40分'
@@ -720,7 +720,7 @@ const SPOTS = [
     area: '礼文',
     categories: ['nature', 'season'],
     icon: 'flower',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '日本最北の有人島。300種を超える高山植物が低地で見られる「花の浮島」。',
     bestSeason: '初夏',
     accessTime: '稚内からフェリー約1時間55分'
@@ -733,7 +733,7 @@ const SPOTS = [
     area: '豊富',
     categories: ['nature'],
     icon: 'flower',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '日本三大湿原の一つ。エゾカンゾウなどの花々と利尻富士の眺望が見事。',
     bestSeason: '夏',
     accessTime: 'JR豊富駅から車で約15分'
@@ -746,7 +746,7 @@ const SPOTS = [
     area: '美瑛',
     categories: ['nature', 'season'],
     icon: 'flower',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '虹のように色とりどりの花畑が広がる丘。アルパカ牧場も併設されています。',
     bestSeason: '夏〜秋',
     accessTime: 'JR美馬牛駅から徒歩約25分'
@@ -759,7 +759,7 @@ const SPOTS = [
     area: '占冠',
     categories: ['nature', 'season'],
     icon: 'cloud',
-    color: '#D5C5E8',
+    color: '#8E6FB0',
     description: '雲海テラスで有名なリゾート。冬は氷の街「アイスヴィレッジ」も楽しめます。',
     bestSeason: '通年',
     accessTime: 'JRトマム駅から送迎バス約5分'
@@ -772,7 +772,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['food', 'culture'],
     icon: 'bottle',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '日本唯一のビール博物館。明治から続くビール造りの歴史を学び、試飲も可能。',
     bestSeason: '通年',
     accessTime: 'JR札幌駅からバス約10分'
@@ -785,7 +785,7 @@ const SPOTS = [
     area: '登別',
     categories: ['city', 'nature'],
     icon: 'bear',
-    color: '#FFE5B4',
+    color: '#F5C342',
     description: '約70頭のヒグマを間近で観察できる牧場。ロープウェイで山頂へアクセス。',
     bestSeason: '通年',
     accessTime: '登別温泉バスターミナルから徒歩10分'
@@ -798,7 +798,7 @@ const SPOTS = [
     area: 'ルスツ',
     categories: ['nature', 'season'],
     icon: 'mountain',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '北海道最大級の遊園地とスキーリゾートを併せ持つ複合リゾート。',
     bestSeason: '通年',
     accessTime: '札幌から車で約90分'
@@ -811,7 +811,7 @@ const SPOTS = [
     area: '富良野',
     categories: ['food', 'season'],
     icon: 'melon',
-    color: '#B5E2C5',
+    color: '#8FD0A4',
     description: '夏の風物詩。糖度抜群の赤肉メロンを産地で味わう贅沢な体験。',
     bestSeason: '夏',
     accessTime: 'JR富良野駅周辺'
@@ -824,7 +824,7 @@ const SPOTS = [
     area: '札幌',
     categories: ['hotspring', 'season'],
     icon: 'onsen',
-    color: '#FFD6E0',
+    color: '#ED8DAB',
     description: '札幌の奥座敷と呼ばれる渓谷の温泉郷。秋の紅葉が特に美しい。',
     bestSeason: '秋',
     accessTime: 'JR札幌駅からバス約70分'
@@ -837,7 +837,7 @@ const SPOTS = [
     area: '積丹',
     categories: ['nature', 'food'],
     icon: 'sea',
-    color: '#B8E0F5',
+    color: '#5DC2B4',
     description: '「積丹ブルー」と呼ばれる青い海と神威岬の絶景。夏のウニ漁も名物。',
     bestSeason: '夏',
     accessTime: '小樽から車で約1時間30分'
@@ -845,10 +845,10 @@ const SPOTS = [
 ];
 
 const REGIONS = {
-  doo:    { name: '道央',   nameEn: 'Central',  color: '#B5392D', icon: 'mountain' },
-  donan:  { name: '道南',   nameEn: 'Southern', color: '#C4922E', icon: 'castle' },
-  doto:   { name: '道東',   nameEn: 'Eastern',  color: '#5F7A4F', icon: 'crane' },
-  dohoku: { name: '道北',   nameEn: 'Northern', color: '#2C4D7A', icon: 'snowflake' }
+  doo:    { name: '道央',   nameEn: 'Central',  color: '#E84A38', icon: 'mountain' },
+  donan:  { name: '道南',   nameEn: 'Southern', color: '#F09040', icon: 'castle' },
+  doto:   { name: '道東',   nameEn: 'Eastern',  color: '#6FAE52', icon: 'crane' },
+  dohoku: { name: '道北',   nameEn: 'Northern', color: '#4A8DC0', icon: 'snowflake' }
 };
 
 const CATEGORIES = {
