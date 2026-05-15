@@ -352,17 +352,49 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   color: var(--paper);
 }
 
-/* Hero illustration container */
+/* Hero illustration container (also used for cover video) */
 .hero-illust {
   position: relative;
-  aspect-ratio: 1 / 1.05;
-  max-width: 440px;
+  aspect-ratio: 16 / 11;
+  max-width: 560px;
   margin: 0 auto;
   transform: rotate(-1deg);
 }
 .hero-illust > svg {
   width: 100%;
   height: 100%;
+}
+
+/* Hero cover video */
+.hero-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border: 5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--milk);
+  box-shadow: var(--pop-lg);
+}
+
+/* Title sticker overlay on hero video */
+.hero-video-title {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  background: var(--c-red);
+  color: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  padding: 0.35rem 1.4rem;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.15em;
+  box-shadow: var(--pop-sm);
+  z-index: 2;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 /* Washi tape stickers on hero illust */
