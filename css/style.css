@@ -884,7 +884,7 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   background: var(--c-yellow);
 }
 .price-card.popular::before {
-  content: '一番人気♪';
+  content: 'POPULAR';
   position: absolute;
   top: -16px;
   left: 50%;
@@ -895,7 +895,8 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   padding: 0.25rem 1rem;
   border-radius: 20px;
   font-family: "Yusei Magic", sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
   box-shadow: var(--pop-sm);
   white-space: nowrap;
 }
@@ -1220,6 +1221,68 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   0%, 100% { transform: rotate(-2deg); }
   50% { transform: rotate(2deg); }
 }
+
+/* ===== Comparison Table ===== */
+.comparison-wrap {
+  background: var(--milk);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 0.6rem;
+  box-shadow: var(--pop);
+  overflow-x: auto;
+}
+.comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.95rem;
+  min-width: 540px;
+}
+.comparison th,
+.comparison td {
+  padding: 0.85rem 1rem;
+  text-align: center;
+  border-bottom: 2px dashed var(--paper-deep);
+}
+.comparison th {
+  font-family: "Yusei Magic", sans-serif;
+  font-weight: 400;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: var(--paper-warm);
+  border-bottom: 2.5px solid var(--ink);
+}
+.comparison th:first-child,
+.comparison td:first-child {
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--paper);
+  border-right: 2px dashed var(--paper-deep);
+}
+.comparison .th-popular {
+  background: var(--c-yellow);
+  position: relative;
+}
+.comparison .th-popular::after {
+  content: '★';
+  position: absolute;
+  top: 2px; right: 4px;
+  color: var(--c-red);
+  font-size: 0.8rem;
+}
+.comparison td:nth-child(3) { background: rgba(245, 195, 66, 0.12); }
+.comparison tbody tr:last-child td { border-bottom: none; }
+.comparison .row-price td {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.15rem;
+  color: var(--c-red);
+  padding-top: 1.1rem;
+  padding-bottom: 1.1rem;
+  background: var(--paper-warm);
+}
+.comparison .row-price td:first-child { color: var(--ink); }
+.comparison .row-price td:nth-child(3) { background: var(--c-yellow); }
 
 /* ===== Responsive ===== */
 @media (max-width: 720px) {
