@@ -2,7 +2,6 @@
 // Hokkaido Tourism Portal - Main JS
 // ========================================
 
-// ----- Helpers -----
 const $  = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -21,7 +20,7 @@ function renderSpotCard(spot) {
 
   return `
     <article class="spot-card fade-in" data-region="${spot.region}" data-categories="${spot.categories.join(',')}" data-name="${escapeHtml(spot.name + ' ' + spot.nameEn + ' ' + spot.area)}">
-      <div class="spot-illustration" style="--card-color: ${spot.color}">
+      <div class="spot-illustration">
         <span class="spot-region-tag">${region.name}</span>
         <span class="spot-season-tag">${spot.bestSeason}</span>
         ${getIcon(spot.icon)}
@@ -29,7 +28,7 @@ function renderSpotCard(spot) {
       <div class="spot-content">
         <h3 class="spot-name">${escapeHtml(spot.name)}</h3>
         <p class="spot-name-en">${escapeHtml(spot.nameEn)}</p>
-        <div class="spot-area">${escapeHtml(spot.area)}・${escapeHtml(spot.accessTime)}</div>
+        <div class="spot-area">${escapeHtml(spot.area)} &nbsp;/&nbsp; ${escapeHtml(spot.accessTime)}</div>
         <p class="spot-desc">${escapeHtml(spot.description)}</p>
         <div class="spot-meta">${cats}</div>
       </div>
@@ -37,35 +36,39 @@ function renderSpotCard(spot) {
   `;
 }
 
-// ----- Render region cards (on home page) -----
+// ----- Render region cards -----
 function renderRegionCards(container) {
   if (!container) return;
   const counts = {};
   SPOTS.forEach(s => { counts[s.region] = (counts[s.region] || 0) + 1; });
 
   const descs = {
-    doo:    '札幌・小樽・富良野・美瑛など、定番スポットがぎゅっと詰まったエリア。',
-    donan:  '函館・松前など、夜景と歴史ロマンが香る道南エリア。',
-    doto:   '知床・釧路・網走など、大自然と神秘の湖が広がる東のエリア。',
-    dohoku: '旭山動物園・宗谷岬・利尻礼文など、日本最北の絶景が並ぶエリア。'
+    doo:    '札幌・小樽・富良野・美瑛など、<br>定番スポットが揃う中心エリア。',
+    donan:  '函館・松前など、<br>夜景と歴史ロマンが香るエリア。',
+    doto:   '知床・釧路・網走など、<br>大自然と神秘の湖が広がるエリア。',
+    dohoku: '旭山動物園・宗谷岬・利尻礼文など、<br>日本最北の絶景が並ぶエリア。'
   };
 
-  container.innerHTML = Object.entries(REGIONS).map(([key, r]) => `
-    <a href="spots.html?region=${key}" class="region-card fade-in"
-       style="--card-color: ${r.color}; --card-bg: ${r.color}">
+  const order = ['doo', 'donan', 'doto', 'dohoku'];
+  const num   = ['01', '02', '03', '04'];
+
+  container.innerHTML = order.map((key, i) => {
+    const r = REGIONS[key];
+    return `
+    <a href="spots.html?region=${key}" class="region-card fade-in" style="--card-color: ${r.color}">
+      <p class="region-num">AREA / ${num[i]}</p>
       <div class="region-icon">${getIcon(r.icon)}</div>
       <h3 class="region-name">${r.name}</h3>
-      <p class="region-name-en">${r.nameEn.toUpperCase()} HOKKAIDO</p>
+      <p class="region-name-en">${r.nameEn.toUpperCase()}</p>
       <p class="region-desc">${descs[key]}</p>
-      <span class="region-count">${counts[key] || 0}スポット</span>
-    </a>
-  `).join('');
+      <span class="region-count">${counts[key] || 0} Spots</span>
+    </a>`;
+  }).join('');
 }
 
-// ----- Render featured spots (random selection on home) -----
+// ----- Render featured spots -----
 function renderFeatured(container, count = 6) {
   if (!container) return;
-  // Curated featured list
   const featuredIds = [
     'sapporo-snow-festival', 'mt-hakodate', 'shiretoko',
     'biei-blue-pond', 'asahiyama-zoo', 'otaru-canal'
@@ -81,14 +84,11 @@ function renderFeatured(container, count = 6) {
 // ----- Render all spots with filters -----
 function renderAllSpots() {
   const grid = $('#spots-grid');
-  const counter = $('#spot-count');
   if (!grid) return;
 
-  // initial render
   grid.innerHTML = SPOTS.map(renderSpotCard).join('');
   updateFilterResult();
 
-  // Setup filter chips
   $$('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const group = chip.dataset.group;
@@ -98,11 +98,8 @@ function renderAllSpots() {
     });
   });
 
-  // Search input
   const search = $('#search-input');
-  if (search) {
-    search.addEventListener('input', applyFilters);
-  }
+  if (search) search.addEventListener('input', applyFilters);
 
   // URL params
   const params = new URLSearchParams(location.search);
@@ -119,7 +116,7 @@ function renderAllSpots() {
 
 function applyFilters() {
   const activeRegion = $('.chip[data-group="region"].active')?.dataset.region || 'all';
-  const activeCat = $('.chip[data-group="category"].active')?.dataset.category || 'all';
+  const activeCat    = $('.chip[data-group="category"].active')?.dataset.category || 'all';
   const q = ($('#search-input')?.value || '').toLowerCase().trim();
 
   let visible = 0;
@@ -129,8 +126,8 @@ function applyFilters() {
     const name = card.dataset.name.toLowerCase();
 
     const regionOk = activeRegion === 'all' || activeRegion === region;
-    const catOk = activeCat === 'all' || cats.includes(activeCat);
-    const qOk = !q || name.includes(q);
+    const catOk    = activeCat === 'all' || cats.includes(activeCat);
+    const qOk      = !q || name.includes(q);
 
     if (regionOk && catOk && qOk) {
       card.style.display = '';
@@ -148,27 +145,14 @@ function updateFilterResult(visible) {
   if (!el) return;
   const total = SPOTS.length;
   if (visible === undefined) visible = total;
-  el.innerHTML = `<strong>${visible}</strong> / ${total} 件のスポットを表示中`;
+  el.innerHTML = `現在 <strong>${visible}</strong> / ${total} 件のスポットを表示中`;
 
   const noResults = $('#no-results');
   if (noResults) noResults.style.display = visible === 0 ? '' : 'none';
 }
 
-// ----- FAQ toggle -----
-function setupFAQ() {
-  $$('.faq-item').forEach(item => {
-    item.addEventListener('click', () => {
-      item.classList.toggle('open');
-      const a = item.querySelector('.faq-a');
-      if (a) a.style.display = item.classList.contains('open') ? '' : 'none';
-    });
-  });
-}
-
-// ----- Initialize on DOM ready -----
 document.addEventListener('DOMContentLoaded', () => {
   renderRegionCards($('#region-cards'));
   renderFeatured($('#featured-spots'));
   renderAllSpots();
-  setupFAQ();
 });

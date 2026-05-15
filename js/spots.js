@@ -845,10 +845,10 @@ const SPOTS = [
 ];
 
 const REGIONS = {
-  doo:    { name: '道央',   nameEn: 'Central',  color: '#FFD6E0', icon: 'sakura' },
-  donan:  { name: '道南',   nameEn: 'Southern', color: '#FFE5B4', icon: 'castle' },
-  doto:   { name: '道東',   nameEn: 'Eastern',  color: '#B5E2C5', icon: 'crane' },
-  dohoku: { name: '道北',   nameEn: 'Northern', color: '#B8E0F5', icon: 'snowflake' }
+  doo:    { name: '道央',   nameEn: 'Central',  color: '#B5392D', icon: 'mountain' },
+  donan:  { name: '道南',   nameEn: 'Southern', color: '#C4922E', icon: 'castle' },
+  doto:   { name: '道東',   nameEn: 'Eastern',  color: '#5F7A4F', icon: 'crane' },
+  dohoku: { name: '道北',   nameEn: 'Northern', color: '#2C4D7A', icon: 'snowflake' }
 };
 
 const CATEGORIES = {
