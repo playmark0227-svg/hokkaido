@@ -6,6 +6,7 @@ const SPOTS = [
   // ===== 道央 (Doo) =====
   {
     id: 'sapporo-clock-tower',
+    coords: [43.0625, 141.3537],
     name: '札幌市時計台',
     nameEn: 'Sapporo Clock Tower',
     region: 'doo',
@@ -19,6 +20,7 @@ const SPOTS = [
   },
   {
     id: 'sapporo-tv-tower',
+    coords: [43.0613, 141.3567],
     name: 'さっぽろテレビ塔',
     nameEn: 'Sapporo TV Tower',
     region: 'doo',
@@ -32,6 +34,7 @@ const SPOTS = [
   },
   {
     id: 'odori-park',
+    coords: [43.0606, 141.3477],
     name: '大通公園',
     nameEn: 'Odori Park',
     region: 'doo',
@@ -45,6 +48,7 @@ const SPOTS = [
   },
   {
     id: 'hokkaido-shrine',
+    coords: [43.0541, 141.3072],
     name: '北海道神宮',
     nameEn: 'Hokkaido Shrine',
     region: 'doo',
@@ -58,6 +62,7 @@ const SPOTS = [
   },
   {
     id: 'moerenuma-park',
+    coords: [43.1316, 141.4221],
     name: 'モエレ沼公園',
     nameEn: 'Moerenuma Park',
     region: 'doo',
@@ -71,6 +76,7 @@ const SPOTS = [
   },
   {
     id: 'shiroi-koibito-park',
+    coords: [43.0866, 141.2682],
     name: '白い恋人パーク',
     nameEn: 'Shiroi Koibito Park',
     region: 'doo',
@@ -84,6 +90,7 @@ const SPOTS = [
   },
   {
     id: 'maruyama-zoo',
+    coords: [43.0524, 141.3105],
     name: '円山動物園',
     nameEn: 'Maruyama Zoo',
     region: 'doo',
@@ -97,6 +104,7 @@ const SPOTS = [
   },
   {
     id: 'otaru-canal',
+    coords: [43.1932, 140.9947],
     name: '小樽運河',
     nameEn: 'Otaru Canal',
     region: 'doo',
@@ -110,6 +118,7 @@ const SPOTS = [
   },
   {
     id: 'otaru-music-box',
+    coords: [43.1922, 140.997],
     name: '小樽オルゴール堂',
     nameEn: 'Otaru Music Box Museum',
     region: 'doo',
@@ -123,6 +132,7 @@ const SPOTS = [
   },
   {
     id: 'yoichi-distillery',
+    coords: [43.1922, 140.7726],
     name: 'ニッカウヰスキー余市蒸溜所',
     nameEn: 'Nikka Whisky Yoichi Distillery',
     region: 'doo',
@@ -136,6 +146,7 @@ const SPOTS = [
   },
   {
     id: 'niseko',
+    coords: [42.8048, 140.6877],
     name: 'ニセコ',
     nameEn: 'Niseko',
     region: 'doo',
@@ -149,6 +160,7 @@ const SPOTS = [
   },
   {
     id: 'lake-toya',
+    coords: [42.5803, 140.8431],
     name: '洞爺湖',
     nameEn: 'Lake Toya',
     region: 'doo',
@@ -162,6 +174,7 @@ const SPOTS = [
   },
   {
     id: 'showa-shinzan',
+    coords: [42.5436, 140.8631],
     name: '昭和新山',
     nameEn: 'Showa Shinzan',
     region: 'doo',
@@ -175,6 +188,7 @@ const SPOTS = [
   },
   {
     id: 'noboribetsu-onsen',
+    coords: [42.4905, 141.1454],
     name: '登別温泉',
     nameEn: 'Noboribetsu Onsen',
     region: 'doo',
@@ -188,6 +202,7 @@ const SPOTS = [
   },
   {
     id: 'jigokudani',
+    coords: [42.4928, 141.1432],
     name: '地獄谷',
     nameEn: 'Jigokudani (Hell Valley)',
     region: 'doo',
@@ -201,6 +216,7 @@ const SPOTS = [
   },
   {
     id: 'lake-shikotsu',
+    coords: [42.77, 141.3531],
     name: '支笏湖',
     nameEn: 'Lake Shikotsu',
     region: 'doo',
@@ -214,6 +230,7 @@ const SPOTS = [
   },
   {
     id: 'furano-lavender',
+    coords: [43.4297, 142.4314],
     name: 'ファーム富田',
     nameEn: 'Farm Tomita',
     region: 'doo',
@@ -227,6 +244,7 @@ const SPOTS = [
   },
   {
     id: 'furano',
+    coords: [43.3417, 142.3833],
     name: '富良野',
     nameEn: 'Furano',
     region: 'doo',
@@ -240,6 +258,7 @@ const SPOTS = [
   },
   {
     id: 'biei-blue-pond',
+    coords: [43.4955, 142.6157],
     name: '青い池',
     nameEn: 'Blue Pond (Aoi-Ike)',
     region: 'doo',
@@ -253,6 +272,7 @@ const SPOTS = [
   },
   {
     id: 'biei-patchwork',
+    coords: [43.5895, 142.4621],
     name: 'パッチワークの路',
     nameEn: 'Patchwork Road',
     region: 'doo',
@@ -266,6 +286,7 @@ const SPOTS = [
   },
   {
     id: 'shirahige-falls',
+    coords: [43.5026, 142.6394],
     name: '白ひげの滝',
     nameEn: 'Shirahige Falls',
     region: 'doo',
@@ -279,6 +300,7 @@ const SPOTS = [
   },
   {
     id: 'sapporo-snow-festival',
+    coords: [43.0606, 141.3477],
     name: 'さっぽろ雪まつり',
     nameEn: 'Sapporo Snow Festival',
     region: 'doo',
@@ -294,6 +316,7 @@ const SPOTS = [
   // ===== 道南 (Donan) =====
   {
     id: 'mt-hakodate',
+    coords: [41.7596, 140.7036],
     name: '函館山',
     nameEn: 'Mt. Hakodate',
     region: 'donan',
@@ -307,6 +330,7 @@ const SPOTS = [
   },
   {
     id: 'goryokaku',
+    coords: [41.7969, 140.7568],
     name: '五稜郭',
     nameEn: 'Goryokaku',
     region: 'donan',
@@ -320,6 +344,7 @@ const SPOTS = [
   },
   {
     id: 'hakodate-morning-market',
+    coords: [41.7733, 140.7261],
     name: '函館朝市',
     nameEn: 'Hakodate Morning Market',
     region: 'donan',
@@ -333,6 +358,7 @@ const SPOTS = [
   },
   {
     id: 'motomachi',
+    coords: [41.7616, 140.711],
     name: '元町エリア',
     nameEn: 'Motomachi Area',
     region: 'donan',
@@ -346,6 +372,7 @@ const SPOTS = [
   },
   {
     id: 'kanemori-warehouse',
+    coords: [41.7691, 140.7224],
     name: '金森赤レンガ倉庫',
     nameEn: 'Kanemori Red Brick Warehouse',
     region: 'donan',
@@ -359,6 +386,7 @@ const SPOTS = [
   },
   {
     id: 'yunokawa-onsen',
+    coords: [41.7715, 140.7951],
     name: '湯の川温泉',
     nameEn: 'Yunokawa Onsen',
     region: 'donan',
@@ -372,6 +400,7 @@ const SPOTS = [
   },
   {
     id: 'onuma-park',
+    coords: [41.9989, 140.6555],
     name: '大沼国定公園',
     nameEn: 'Onuma Quasi-National Park',
     region: 'donan',
@@ -385,6 +414,7 @@ const SPOTS = [
   },
   {
     id: 'matsumae-castle',
+    coords: [41.4307, 140.11],
     name: '松前城',
     nameEn: 'Matsumae Castle',
     region: 'donan',
@@ -398,6 +428,7 @@ const SPOTS = [
   },
   {
     id: 'esashi',
+    coords: [41.8674, 140.1273],
     name: '江差',
     nameEn: 'Esashi',
     region: 'donan',
@@ -411,6 +442,7 @@ const SPOTS = [
   },
   {
     id: 'trappistine',
+    coords: [41.8232, 140.7948],
     name: 'トラピスチヌ修道院',
     nameEn: 'Trappistine Monastery',
     region: 'donan',
@@ -426,6 +458,7 @@ const SPOTS = [
   // ===== 道東 (Doto) =====
   {
     id: 'kushiro-wetland',
+    coords: [43.1145, 144.2887],
     name: '釧路湿原',
     nameEn: 'Kushiro Wetland',
     region: 'doto',
@@ -439,6 +472,7 @@ const SPOTS = [
   },
   {
     id: 'lake-akan',
+    coords: [43.45, 144.1],
     name: '阿寒湖',
     nameEn: 'Lake Akan',
     region: 'doto',
@@ -452,6 +486,7 @@ const SPOTS = [
   },
   {
     id: 'lake-mashu',
+    coords: [43.5811, 144.5314],
     name: '摩周湖',
     nameEn: 'Lake Mashu',
     region: 'doto',
@@ -465,6 +500,7 @@ const SPOTS = [
   },
   {
     id: 'lake-kussharo',
+    coords: [43.6233, 144.3306],
     name: '屈斜路湖',
     nameEn: 'Lake Kussharo',
     region: 'doto',
@@ -478,6 +514,7 @@ const SPOTS = [
   },
   {
     id: 'shiretoko',
+    coords: [44.0772, 145.0386],
     name: '知床',
     nameEn: 'Shiretoko',
     region: 'doto',
@@ -491,6 +528,7 @@ const SPOTS = [
   },
   {
     id: 'shiretoko-goko',
+    coords: [44.1133, 145.0917],
     name: '知床五湖',
     nameEn: 'Shiretoko Five Lakes',
     region: 'doto',
@@ -504,6 +542,7 @@ const SPOTS = [
   },
   {
     id: 'oshinkoshin-falls',
+    coords: [44.0533, 144.9669],
     name: 'オシンコシンの滝',
     nameEn: 'Oshinkoshin Falls',
     region: 'doto',
@@ -517,6 +556,7 @@ const SPOTS = [
   },
   {
     id: 'abashiri-drift-ice',
+    coords: [44.0214, 144.2719],
     name: '網走の流氷',
     nameEn: 'Abashiri Drift Ice',
     region: 'doto',
@@ -530,6 +570,7 @@ const SPOTS = [
   },
   {
     id: 'abashiri-prison',
+    coords: [44.0186, 144.2461],
     name: '博物館 網走監獄',
     nameEn: 'Abashiri Prison Museum',
     region: 'doto',
@@ -543,6 +584,7 @@ const SPOTS = [
   },
   {
     id: 'tokachi',
+    coords: [42.9233, 143.1969],
     name: '十勝平野',
     nameEn: 'Tokachi Plain',
     region: 'doto',
@@ -556,6 +598,7 @@ const SPOTS = [
   },
   {
     id: 'lake-shikaribetsu',
+    coords: [43.2761, 142.9844],
     name: '然別湖',
     nameEn: 'Lake Shikaribetsu',
     region: 'doto',
@@ -569,6 +612,7 @@ const SPOTS = [
   },
   {
     id: 'nosappu-misaki',
+    coords: [43.3833, 145.82],
     name: '納沙布岬',
     nameEn: 'Nosappu Cape',
     region: 'doto',
@@ -582,6 +626,7 @@ const SPOTS = [
   },
   {
     id: 'kiritappu-wetland',
+    coords: [43.0589, 144.8919],
     name: '霧多布湿原',
     nameEn: 'Kiritappu Wetland',
     region: 'doto',
@@ -595,6 +640,7 @@ const SPOTS = [
   },
   {
     id: 'mashu-onsen',
+    coords: [43.6347, 144.4506],
     name: '川湯温泉',
     nameEn: 'Kawayu Onsen',
     region: 'doto',
@@ -608,6 +654,7 @@ const SPOTS = [
   },
   {
     id: 'erimo-misaki',
+    coords: [41.9286, 143.2456],
     name: '襟裳岬',
     nameEn: 'Erimo Cape',
     region: 'doto',
@@ -623,6 +670,7 @@ const SPOTS = [
   // ===== 道北 (Dohoku) =====
   {
     id: 'asahiyama-zoo',
+    coords: [43.7708, 142.4781],
     name: '旭山動物園',
     nameEn: 'Asahiyama Zoo',
     region: 'dohoku',
@@ -636,6 +684,7 @@ const SPOTS = [
   },
   {
     id: 'asahikawa-ramen',
+    coords: [43.7822, 142.4194],
     name: '旭川ラーメン村',
     nameEn: 'Asahikawa Ramen Village',
     region: 'dohoku',
@@ -649,6 +698,7 @@ const SPOTS = [
   },
   {
     id: 'sounkyo',
+    coords: [43.7253, 142.9636],
     name: '層雲峡',
     nameEn: 'Sounkyo Gorge',
     region: 'dohoku',
@@ -662,6 +712,7 @@ const SPOTS = [
   },
   {
     id: 'daisetsuzan',
+    coords: [43.6633, 142.8519],
     name: '大雪山',
     nameEn: 'Daisetsuzan',
     region: 'dohoku',
@@ -675,6 +726,7 @@ const SPOTS = [
   },
   {
     id: 'cape-soya',
+    coords: [45.523, 141.9367],
     name: '宗谷岬',
     nameEn: 'Cape Soya',
     region: 'dohoku',
@@ -688,6 +740,7 @@ const SPOTS = [
   },
   {
     id: 'wakkanai',
+    coords: [45.4156, 141.6739],
     name: '稚内',
     nameEn: 'Wakkanai',
     region: 'dohoku',
@@ -701,6 +754,7 @@ const SPOTS = [
   },
   {
     id: 'rishiri-island',
+    coords: [45.1789, 141.2278],
     name: '利尻島',
     nameEn: 'Rishiri Island',
     region: 'dohoku',
@@ -714,6 +768,7 @@ const SPOTS = [
   },
   {
     id: 'rebun-island',
+    coords: [45.3522, 141.0322],
     name: '礼文島',
     nameEn: 'Rebun Island',
     region: 'dohoku',
@@ -727,6 +782,7 @@ const SPOTS = [
   },
   {
     id: 'sarobetsu',
+    coords: [45.15, 141.65],
     name: 'サロベツ原野',
     nameEn: 'Sarobetsu Plain',
     region: 'dohoku',
@@ -740,6 +796,7 @@ const SPOTS = [
   },
   {
     id: 'biei-hill',
+    coords: [43.5556, 142.4814],
     name: '四季彩の丘',
     nameEn: 'Shikisai-no-Oka',
     region: 'doo',
@@ -753,6 +810,7 @@ const SPOTS = [
   },
   {
     id: 'tomamu',
+    coords: [42.9839, 142.6678],
     name: '星野リゾート トマム',
     nameEn: 'Hoshino Resorts Tomamu',
     region: 'doo',
@@ -766,6 +824,7 @@ const SPOTS = [
   },
   {
     id: 'sapporo-beer',
+    coords: [43.0686, 141.3683],
     name: 'サッポロビール博物館',
     nameEn: 'Sapporo Beer Museum',
     region: 'doo',
@@ -779,6 +838,7 @@ const SPOTS = [
   },
   {
     id: 'noboribetsu-bear',
+    coords: [42.4881, 141.1518],
     name: 'のぼりべつクマ牧場',
     nameEn: 'Noboribetsu Bear Park',
     region: 'doo',
@@ -792,6 +852,7 @@ const SPOTS = [
   },
   {
     id: 'rusutsu',
+    coords: [42.7472, 140.9261],
     name: 'ルスツリゾート',
     nameEn: 'Rusutsu Resort',
     region: 'doo',
@@ -805,6 +866,7 @@ const SPOTS = [
   },
   {
     id: 'tomita-melon',
+    coords: [43.3417, 142.3833],
     name: '富良野メロン',
     nameEn: 'Furano Melon Farms',
     region: 'doo',
@@ -818,6 +880,7 @@ const SPOTS = [
   },
   {
     id: 'jozankei-onsen',
+    coords: [42.9764, 141.1631],
     name: '定山渓温泉',
     nameEn: 'Jozankei Onsen',
     region: 'doo',
@@ -831,6 +894,7 @@ const SPOTS = [
   },
   {
     id: 'shakotan',
+    coords: [43.3081, 140.5328],
     name: '積丹半島',
     nameEn: 'Shakotan Peninsula',
     region: 'doo',

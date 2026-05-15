@@ -1518,8 +1518,602 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .comparison .row-price td:nth-child(3) { background: var(--c-yellow); }
 
 /* ============================================================
-   Responsive
-   ============================================================
+   Map / Chat / Swipe / Itinerary — Trip Planner UI
+   ============================================================ */
+
+/* ── Map Hero ───────────────────────────────────────────── */
+.map-hero {
+  padding: clamp(2rem, 5vw, 3rem) 0 clamp(2.5rem, 5vw, 3.5rem);
+  position: relative;
+}
+.map-hero-text {
+  text-align: center;
+  margin-bottom: 1.8rem;
+}
+.map-hero-title {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 1rem;
+}
+.map-hero-sub {
+  max-width: 640px;
+  margin: 0 auto;
+  font-size: 1rem;
+  color: var(--ink-light);
+  line-height: 1.95;
+}
+
+.map-frame {
+  position: relative;
+  background: var(--milk);
+  border: 4px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: var(--pop-lg);
+  overflow: hidden;
+  transform: rotate(-0.4deg);
+}
+.hero-map {
+  width: 100%;
+  height: clamp(360px, 55vh, 580px);
+  background: var(--paper-warm);
+}
+/* Leaflet attribution/zoom styling tweaks */
+.leaflet-container { font-family: "Klee One", sans-serif; }
+.leaflet-control-attribution {
+  background: rgba(255, 252, 244, 0.85) !important;
+  font-size: 0.65rem !important;
+}
+.leaflet-popup-content-wrapper {
+  background: var(--milk);
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.leaflet-popup-tip { background: var(--ink); }
+.leaflet-popup-content { margin: 0.8rem 1rem; min-width: 180px; }
+.map-popup strong {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  display: block;
+}
+.map-popup-en {
+  font-family: "Caveat", cursive;
+  font-size: 0.9rem;
+  color: var(--c-red);
+  display: block;
+  margin-bottom: 0.45rem;
+}
+.map-popup p {
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  line-height: 1.7;
+  margin: 0 0 0.45rem;
+}
+.map-popup small {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+/* Pins */
+.spot-pin span {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ink);
+  box-shadow: 1px 1px 0 var(--ink);
+  transition: transform .2s;
+}
+.spot-pin.is-fav span {
+  width: 26px;
+  height: 26px;
+  border-width: 3px;
+  box-shadow: 2px 2px 0 var(--ink);
+  animation: pinPulse 1.2s ease-in-out infinite;
+}
+@keyframes pinPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  justify-content: center;
+  padding: 0.8rem 1rem;
+  background: var(--milk);
+  border-top: 2.5px dashed var(--washi);
+  font-family: "Klee One", sans-serif;
+  font-size: 0.86rem;
+  color: var(--ink);
+}
+.map-legend .dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  vertical-align: middle;
+  margin-right: 0.3rem;
+}
+.map-legend .dot-doo    { background: #E84A38; }
+.map-legend .dot-donan  { background: #F09040; }
+.map-legend .dot-doto   { background: #6FAE52; }
+.map-legend .dot-dohoku { background: #4A8DC0; }
+.map-legend .dot-fav    { background: #E84A38; width: 16px; height: 16px; box-shadow: 1px 1px 0 var(--ink); }
+.legend-fav { font-weight: 700; }
+
+/* ── Planner / Chat ─────────────────────────────────────── */
+.planner-section { padding-top: 1rem; }
+.planner-card {
+  background: var(--washi-card);
+  background-size: 800px auto;
+  background-position: center;
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  box-shadow: var(--pop);
+  padding: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 380px;
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  max-height: 460px;
+  overflow-y: auto;
+  padding: 0.6rem 0.4rem;
+  scrollbar-width: thin;
+}
+.chat-window::-webkit-scrollbar { width: 6px; }
+.chat-window::-webkit-scrollbar-thumb { background: var(--washi); border-radius: 3px; }
+
+.chat-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: 100%;
+  animation: msgIn 0.3s ease-out;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.chat-msg-bot { align-self: flex-start; }
+.chat-msg-user { align-self: flex-end; flex-direction: row-reverse; }
+
+.chat-avatar {
+  flex-shrink: 0;
+  width: 38px; height: 38px;
+  background: var(--c-red);
+  color: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.chat-bubble {
+  background: var(--milk);
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  padding: 0.7rem 1rem;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.94rem;
+  line-height: 1.75;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  max-width: 78%;
+}
+.chat-msg-user .chat-bubble {
+  background: var(--c-yellow);
+}
+.chat-msg-bot .chat-bubble strong { color: var(--c-red); font-weight: 700; }
+
+.chat-typing .chat-bubble {
+  display: flex;
+  gap: 4px;
+  padding: 0.85rem 1.1rem;
+}
+.chat-typing .chat-bubble span {
+  width: 7px; height: 7px;
+  background: var(--ink-muted);
+  border-radius: 50%;
+  animation: typing 1.2s infinite;
+}
+.chat-typing .chat-bubble span:nth-child(2) { animation-delay: 0.15s; }
+.chat-typing .chat-bubble span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-4px); }
+}
+
+.chat-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 2px dashed var(--washi);
+  min-height: 56px;
+}
+.chat-input:empty { display: none; }
+
+.chat-chip {
+  padding: 0.55rem 1.1rem;
+  background: var(--milk);
+  border: 2.5px solid var(--ink);
+  border-radius: 30px;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: all .15s;
+  min-height: 40px;
+}
+.chat-chip:hover {
+  background: var(--c-yellow);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.chat-chip.selected {
+  background: var(--c-red);
+  color: var(--paper);
+}
+
+.chat-confirm {
+  padding: 0.55rem 1.5rem;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 30px;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 0.92rem;
+  box-shadow: 2px 2px 0 var(--ink);
+  margin-left: auto;
+  min-height: 40px;
+}
+.chat-confirm:disabled {
+  background: var(--washi);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.chat-text-input {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+.chat-text-input input {
+  flex: 1 1 200px;
+  padding: 0.7rem 1rem;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  background: var(--milk);
+  font-family: "Klee One", sans-serif;
+  font-size: 16px;
+  color: var(--ink);
+  outline: none;
+  box-shadow: inset 1px 1px 0 var(--washi);
+}
+.chat-text-input input:focus { background: #fff; }
+.chat-send, .chat-skip {
+  padding: 0.7rem 1.2rem;
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 0.92rem;
+  box-shadow: 2px 2px 0 var(--ink);
+  min-height: 44px;
+}
+.chat-send { background: var(--c-red); color: var(--paper); }
+.chat-skip { background: var(--milk); color: var(--ink); }
+
+.planner-foot {
+  text-align: center;
+  margin-top: 0.9rem;
+}
+.text-link {
+  color: var(--ink-light);
+  font-family: "Klee One", sans-serif;
+  font-size: 0.86rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  padding: 0.3rem 0.6rem;
+}
+.text-link:hover { color: var(--c-red); }
+
+/* ── Swipe ──────────────────────────────────────────────── */
+.swipe-section { padding-top: 1rem; }
+.swipe-stage {
+  position: relative;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+.swipe-progress {
+  text-align: center;
+  margin-bottom: 1rem;
+  font-family: "Caveat", cursive;
+  font-size: 1.3rem;
+  color: var(--ink-light);
+}
+.swipe-progress span {
+  background: var(--c-yellow);
+  border: 2.5px solid var(--ink);
+  border-radius: 24px;
+  padding: 0.18rem 0.9rem;
+  color: var(--ink);
+  font-weight: 700;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.swipe-deck {
+  position: relative;
+  width: 100%;
+  height: 520px;
+  margin: 0 auto;
+  perspective: 1000px;
+}
+
+.swipe-card {
+  position: absolute;
+  inset: 0;
+  background: var(--milk);
+  border: 4px solid var(--ink);
+  border-radius: 22px;
+  box-shadow: var(--pop-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+  --like-op: 0;
+  --skip-op: 0;
+}
+.swipe-card.is-dragging { cursor: grabbing; transition: none; }
+.swipe-card:not(.is-dragging) { transition: transform .35s ease, opacity .35s ease; }
+
+.swipe-card-illust {
+  height: 200px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-bottom: 3px solid var(--ink);
+}
+.swipe-card-illust svg {
+  width: 110px; height: 110px;
+  filter: url(#crayon-rough) drop-shadow(2px 3px 0 rgba(61, 40, 23, 0.25));
+}
+
+.swipe-stamp {
+  position: absolute;
+  top: 18px;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.4rem;
+  padding: 0.4rem 1.1rem;
+  border: 3.5px solid;
+  border-radius: 10px;
+  letter-spacing: 0.08em;
+  transform: rotate(-15deg);
+  pointer-events: none;
+}
+.swipe-stamp-like {
+  left: 16px;
+  color: var(--c-green);
+  border-color: var(--c-green);
+  background: rgba(255, 252, 244, 0.92);
+  opacity: var(--like-op);
+}
+.swipe-stamp-skip {
+  right: 16px;
+  color: var(--c-red);
+  border-color: var(--c-red);
+  background: rgba(255, 252, 244, 0.92);
+  opacity: var(--skip-op);
+  transform: rotate(15deg);
+}
+
+.swipe-card-body {
+  padding: 1.1rem 1.3rem 1.3rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+.swipe-card-body h3 {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+}
+.swipe-card-en {
+  font-family: "Caveat", cursive;
+  font-size: 1rem;
+  color: var(--c-red);
+  margin-bottom: 0.8rem;
+}
+.swipe-card-desc {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.88rem;
+  color: var(--ink-light);
+  line-height: 1.8;
+  margin-bottom: 0.9rem;
+  flex-grow: 1;
+}
+.swipe-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.7rem;
+}
+.swipe-card-access {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.78rem;
+  color: var(--ink-light);
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--washi);
+}
+
+.swipe-actions {
+  display: flex;
+  gap: 1.2rem;
+  justify-content: center;
+  margin-top: 1.6rem;
+}
+.swipe-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 3.5px solid var(--ink);
+  background: var(--milk);
+  display: grid;
+  place-items: center;
+  box-shadow: var(--pop);
+  transition: all .15s;
+}
+.swipe-btn:hover { transform: translate(1px, 1px); box-shadow: var(--pop-sm); }
+.swipe-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+.swipe-btn-skip { color: var(--c-red); }
+.swipe-btn-like { color: var(--c-red); background: var(--c-yellow); }
+.swipe-btn-undo {
+  width: 50px;
+  height: 50px;
+  color: var(--ink-light);
+  background: var(--milk);
+  align-self: center;
+}
+.swipe-btn-undo:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.swipe-empty {
+  margin-top: 2rem;
+  text-align: center;
+  padding: 2rem 1rem;
+  background: var(--washi-card);
+  background-size: 600px auto;
+  border: 3px dashed var(--ink-muted);
+  border-radius: 18px;
+  font-family: "Klee One", sans-serif;
+  color: var(--ink);
+}
+.swipe-empty p { font-size: 1.05rem; margin-bottom: 1.1rem; }
+
+/* ── Itinerary ──────────────────────────────────────────── */
+.itinerary-section { padding-top: 1rem; }
+
+.itinerary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 720px;
+  margin: 0 auto 2rem;
+}
+.itinerary-item {
+  display: grid;
+  grid-template-columns: 50px 100px 1fr;
+  gap: 1rem;
+  align-items: center;
+  background: var(--washi-card);
+  background-size: 500px auto;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  padding: 1rem 1.2rem;
+  box-shadow: var(--pop);
+}
+.itinerary-num {
+  font-family: "Caveat", cursive;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--c-red);
+  text-align: center;
+}
+.itinerary-illust {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  border: 2.5px solid var(--ink);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+.itinerary-illust svg {
+  width: 70px; height: 70px;
+  filter: url(#crayon-rough);
+}
+.itinerary-content h3 {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.15rem;
+  color: var(--ink);
+  margin-bottom: 0.2rem;
+}
+.itinerary-meta {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.82rem;
+  color: var(--ink-light);
+  margin-bottom: 0.4rem;
+}
+.itinerary-content p {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.86rem;
+  color: var(--ink-light);
+  line-height: 1.75;
+}
+.itinerary-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  font-family: "Klee One", sans-serif;
+  color: var(--ink-light);
+}
+.itinerary-actions {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Mobile adjustments for planner UI */
+@media (max-width: 640px) {
+  .map-frame { border-width: 3px; border-radius: 16px; }
+  .hero-map { height: 380px; }
+  .map-legend { font-size: 0.78rem; padding: 0.7rem; gap: 0.5rem 1rem; }
+  .planner-card { padding: 1.1rem; min-height: 340px; }
+  .chat-window { max-height: 380px; }
+  .chat-bubble { font-size: 0.9rem; max-width: 82%; }
+  .chat-avatar { width: 32px; height: 32px; font-size: 0.7rem; }
+  .chat-chip { padding: 0.5rem 0.95rem; font-size: 0.84rem; min-height: 38px; }
+  .swipe-deck { height: 480px; }
+  .swipe-card-illust { height: 170px; }
+  .swipe-card-illust svg { width: 90px; height: 90px; }
+  .swipe-stamp { font-size: 1.15rem; padding: 0.3rem 0.85rem; }
+  .swipe-btn { width: 56px; height: 56px; }
+  .swipe-btn-undo { width: 44px; height: 44px; }
+  .itinerary-item { grid-template-columns: 36px 80px 1fr; gap: 0.7rem; padding: 0.85rem 0.9rem; }
+  .itinerary-illust { width: 80px; height: 80px; }
+  .itinerary-illust svg { width: 56px; height: 56px; }
+  .itinerary-num { font-size: 1.6rem; }
+}
+@media (max-width: 400px) {
+  .swipe-deck { height: 440px; }
+  .hero-map { height: 340px; }
+}
+
    - Large tablet / small laptop: ≤ 1024px
    - Tablet (portrait):           ≤ 820px
    - Mobile (large phone):        ≤ 640px
