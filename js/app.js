@@ -96,9 +96,18 @@ const state = {
   history: [],
 };
 
-function getApiKey() { return localStorage.getItem(STORAGE_KEY) || ''; }
+function getApiKey() {
+  // Priority: config.js (committed) > localStorage (user-entered)
+  if (typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim()) {
+    return window.ANTHROPIC_API_KEY.trim();
+  }
+  return localStorage.getItem(STORAGE_KEY) || '';
+}
 function setApiKey(k) { localStorage.setItem(STORAGE_KEY, k); }
 function clearApiKey() { localStorage.removeItem(STORAGE_KEY); }
+function hasConfiguredKey() {
+  return typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim().length > 0;
+}
 
 async function waitForAnthropic() {
   if (window.Anthropic) return window.Anthropic;
