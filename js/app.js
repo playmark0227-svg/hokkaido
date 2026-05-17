@@ -81,13 +81,13 @@ function refreshFavMarkers() {
 }
 
 // ─────────────────────────────────────────────
-// Anthropic client + State
+// API key management + State
 // ─────────────────────────────────────────────
 const STORAGE_KEY = 'anthropic_api_key';
-let anthropic = null;
+const API_URL = 'https://api.anthropic.com/v1/messages';
 
 const state = {
-  apiMessages: [],     // conversation history for Claude API
+  apiMessages: [],
   isStreaming: false,
   candidates: [],
   cardIndex: 0,
@@ -97,7 +97,6 @@ const state = {
 };
 
 function getApiKey() {
-  // Priority: config.js (committed) > localStorage (user-entered)
   if (typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim()) {
     return window.ANTHROPIC_API_KEY.trim();
   }
@@ -109,22 +108,119 @@ function hasConfiguredKey() {
   return typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim().length > 0;
 }
 
-async function waitForAnthropic() {
-  if (window.Anthropic) return window.Anthropic;
-  return new Promise(resolve => {
-    window.addEventListener('anthropic-loaded', () => resolve(window.Anthropic), { once: true });
-  });
-}
+// Direct fetch to Anthropic API with streaming SSE parsing.
+// No SDK dependency — works on any modern browser.
+async function callClaudeStream({ system, tools, messages, onTextDelta }) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('API キーが設定されていません');
 
-async function initAnthropic() {
-  const key = getApiKey();
-  if (!key) { anthropic = null; return null; }
-  const Anthropic = await waitForAnthropic();
-  anthropic = new Anthropic({
-    apiKey: key,
-    dangerouslyAllowBrowser: true,
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-opus-4-7',
+      max_tokens: 1500,
+      system,
+      tools,
+      messages,
+      stream: true,
+    }),
   });
-  return anthropic;
+
+  if (!response.ok) {
+    let errMsg = `HTTP ${response.status}`;
+    try {
+      const errData = await response.json();
+      errMsg = errData?.error?.message || errMsg;
+      const e = new Error(errMsg);
+      e.status = response.status;
+      e.type = errData?.error?.type;
+      throw e;
+    } catch (_) {
+      const e = new Error(errMsg);
+      e.status = response.status;
+      throw e;
+    }
+  }
+
+  // Parse SSE stream
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  // Accumulate the final message structure
+  const contentBlocks = [];        // [{type, text?, name?, id?, input?}, ...]
+  const toolInputBuffers = {};     // index → partial json string
+  let stopReason = null;
+  let usage = null;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // Each SSE event is separated by \n\n
+    let nlnl;
+    while ((nlnl = buffer.indexOf('\n\n')) !== -1) {
+      const chunk = buffer.slice(0, nlnl);
+      buffer = buffer.slice(nlnl + 2);
+
+      // Parse "data: {...}" lines
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        let event;
+        try { event = JSON.parse(data); } catch { continue; }
+
+        if (event.type === 'content_block_start') {
+          const idx = event.index;
+          const block = { ...event.content_block };
+          contentBlocks[idx] = block;
+          if (block.type === 'tool_use') {
+            toolInputBuffers[idx] = '';
+          }
+        } else if (event.type === 'content_block_delta') {
+          const idx = event.index;
+          const block = contentBlocks[idx];
+          if (event.delta.type === 'text_delta') {
+            block.text = (block.text || '') + event.delta.text;
+            if (onTextDelta) onTextDelta(event.delta.text);
+          } else if (event.delta.type === 'input_json_delta') {
+            toolInputBuffers[idx] += event.delta.partial_json;
+          }
+        } else if (event.type === 'content_block_stop') {
+          const idx = event.index;
+          const block = contentBlocks[idx];
+          if (block && block.type === 'tool_use' && toolInputBuffers[idx]) {
+            try { block.input = JSON.parse(toolInputBuffers[idx]); }
+            catch { block.input = {}; }
+          }
+        } else if (event.type === 'message_delta') {
+          if (event.delta?.stop_reason) stopReason = event.delta.stop_reason;
+          if (event.usage) usage = event.usage;
+        } else if (event.type === 'message_stop') {
+          // done
+        } else if (event.type === 'error') {
+          const err = new Error(event.error?.message || 'Stream error');
+          err.type = event.error?.type;
+          throw err;
+        }
+      }
+    }
+  }
+
+  return {
+    content: contentBlocks.filter(Boolean),
+    stop_reason: stopReason,
+    usage,
+  };
 }
 
 // ─────────────────────────────────────────────
@@ -286,9 +382,9 @@ async function startAiConversation(initialText) {
   $('#swipe-empty').hidden = true;
   refreshFavMarkers();
 
-  if (!anthropic) {
-    const a = await initAnthropic();
-    if (!a) { renderApiKeyPrompt(); return; }
+  if (!getApiKey()) {
+    renderApiKeyPrompt();
+    return;
   }
 
   if (initialText && initialText.trim()) {
@@ -322,44 +418,29 @@ async function runAssistantTurn() {
   let bubble = null;
   let accumulated = '';
 
+  const handleDelta = (text) => {
+    if (typing) { typing.remove(); typing = null; }
+    if (!bubble) bubble = addMessage('', 'bot');
+    accumulated += text;
+    bubble.querySelector('.chat-bubble').innerHTML = escapeHtml(accumulated).replace(/\n/g, '<br>');
+    const w = $('#chat-window');
+    w.scrollTop = w.scrollHeight;
+  };
+
   try {
-    const stream = await anthropic.messages.stream({
-      model: 'claude-opus-4-7',
-      max_tokens: 1500,
+    const finalMessage = await callClaudeStream({
       system: buildSystem(),
       tools: TOOLS,
       messages: state.apiMessages,
+      onTextDelta: handleDelta,
     });
 
-    for await (const event of stream) {
-      if (event.type === 'content_block_start') {
-        if (event.content_block.type === 'text') {
-          if (typing) { typing.remove(); typing = null; }
-          bubble = addMessage('', 'bot');
-        }
-      } else if (event.type === 'content_block_delta') {
-        if (event.delta.type === 'text_delta') {
-          accumulated += event.delta.text;
-          if (bubble) {
-            bubble.querySelector('.chat-bubble').innerHTML = escapeHtml(accumulated).replace(/\n/g, '<br>');
-            const w = $('#chat-window');
-            w.scrollTop = w.scrollHeight;
-          }
-        }
-      } else if (event.type === 'content_block_stop') {
-        accumulated = '';
-      }
-    }
-
-    const finalMessage = await stream.finalMessage();
     if (typing) { typing.remove(); typing = null; }
-
     state.apiMessages.push({ role: 'assistant', content: finalMessage.content });
 
-    // Check for tool use
     const toolUse = finalMessage.content.find(b => b.type === 'tool_use');
     if (toolUse && toolUse.name === 'suggest_spots') {
-      const ok = handleSuggestSpots(toolUse.input);
+      const ok = handleSuggestSpots(toolUse.input || {});
       state.apiMessages.push({
         role: 'user',
         content: [{
@@ -370,18 +451,16 @@ async function runAssistantTurn() {
             : 'スポットIDの一部が無効でした。再度提案してください。'
         }]
       });
-      // Continue conversation flow
       await runAssistantTurn();
       return;
     }
 
-    // No tool used — let user reply
     if (finalMessage.stop_reason === 'end_turn' || finalMessage.stop_reason === 'max_tokens') {
       renderFreeTextInput();
     }
-
   } catch (err) {
     if (typing) typing.remove();
+    console.error('Claude API error:', err);
     handleApiError(err);
   }
 }
@@ -624,7 +703,7 @@ function closeSettingsModal() {
   $('#settings-overlay').hidden = true;
 }
 
-async function handleSaveApiKey() {
+function handleSaveApiKey() {
   const input = $('#api-key-input');
   const status = $('#settings-status');
   const key = input.value.trim();
@@ -633,8 +712,12 @@ async function handleSaveApiKey() {
     status.textContent = 'API キーを入力してください';
     return;
   }
+  if (!key.startsWith('sk-ant-')) {
+    status.className = 'settings-status is-error';
+    status.textContent = 'API キーの形式が正しくないようです (sk-ant- で始まる文字列のはず)';
+    return;
+  }
   setApiKey(key);
-  await initAnthropic();
   status.className = 'settings-status is-success';
   status.textContent = '保存しました。AIプランナーが使えます ✓';
 
@@ -643,12 +726,11 @@ async function handleSaveApiKey() {
     chatStarted = false;
     startAiConversation('');
     document.querySelector('#planner')?.scrollIntoView({ behavior: 'smooth' });
-  }, 800);
+  }, 600);
 }
 
 function handleClearApiKey() {
   clearApiKey();
-  anthropic = null;
   $('#api-key-input').value = '';
   const status = $('#settings-status');
   status.className = 'settings-status is-success';
@@ -680,9 +762,8 @@ function launchChatFromInput(text) {
   setTimeout(() => startAiConversation(text), 300);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   initMap();
-  await initAnthropic();
 
   // Map CTA form
   $('#map-cta-form')?.addEventListener('submit', e => {
