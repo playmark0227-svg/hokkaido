@@ -1,6 +1,6 @@
 // ========================================================
-// Hokkaido Travel Note - App
-// Map + AI Chat Planner + Tinder-style Swipe + Itinerary
+// Hokkaido Travel Note — App with Claude API
+// Map + AI Chat (Claude) + Tinder-style Swipe + Itinerary
 // ========================================================
 
 const $  = (sel, root = document) => root.querySelector(sel);
@@ -26,11 +26,7 @@ let map, markerLayer;
 const markerById = {};
 
 function initMap() {
-  if (typeof L === 'undefined') {
-    // Leaflet still loading; retry shortly
-    setTimeout(initMap, 100);
-    return;
-  }
+  if (typeof L === 'undefined') { setTimeout(initMap, 100); return; }
 
   map = L.map('map', {
     center: [43.4, 142.7],
@@ -38,32 +34,25 @@ function initMap() {
     scrollWheelZoom: false,
     zoomControl: true,
   });
-
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 18,
     attribution: '© OpenStreetMap'
   }).addTo(map);
-
   markerLayer = L.layerGroup().addTo(map);
   SPOTS.forEach(spot => addMarker(spot));
-
-  // Allow scroll zoom only when map is clicked/focused
   map.on('click focus', () => map.scrollWheelZoom.enable());
   map.on('mouseout', () => map.scrollWheelZoom.disable());
 }
 
-function addMarker(spot, options = {}) {
+function addMarker(spot) {
   if (!spot.coords) return;
-  const color = options.color || REGION_COLORS[spot.region] || '#3D2817';
-  const isFav = options.isFav;
-
+  const color = REGION_COLORS[spot.region] || '#3D2817';
   const icon = L.divIcon({
-    className: 'spot-pin' + (isFav ? ' is-fav' : ''),
+    className: 'spot-pin',
     html: `<span style="background:${color}"></span>`,
     iconSize: [22, 22],
     iconAnchor: [11, 11],
   });
-
   const m = L.marker(spot.coords, { icon }).addTo(markerLayer);
   m.bindPopup(`
     <div class="map-popup">
@@ -92,113 +81,123 @@ function refreshFavMarkers() {
 }
 
 // ─────────────────────────────────────────────
-// State
+// Anthropic client + State
 // ─────────────────────────────────────────────
+const STORAGE_KEY = 'anthropic_api_key';
+let anthropic = null;
+
 const state = {
-  step: 0,
-  answers: {
-    budget: null,
-    duration: null,
-    themes: [],
-    regions: [],
-    musts: '',
-  },
-  candidates: [],     // filtered spots for swiping
+  apiMessages: [],     // conversation history for Claude API
+  isStreaming: false,
+  candidates: [],
   cardIndex: 0,
-  likes: [],          // spot ids
+  likes: [],
   skips: [],
-  history: [],        // for undo
+  history: [],
 };
 
+function getApiKey() { return localStorage.getItem(STORAGE_KEY) || ''; }
+function setApiKey(k) { localStorage.setItem(STORAGE_KEY, k); }
+function clearApiKey() { localStorage.removeItem(STORAGE_KEY); }
+
+async function waitForAnthropic() {
+  if (window.Anthropic) return window.Anthropic;
+  return new Promise(resolve => {
+    window.addEventListener('anthropic-loaded', () => resolve(window.Anthropic), { once: true });
+  });
+}
+
+async function initAnthropic() {
+  const key = getApiKey();
+  if (!key) { anthropic = null; return null; }
+  const Anthropic = await waitForAnthropic();
+  anthropic = new Anthropic({
+    apiKey: key,
+    dangerouslyAllowBrowser: true,
+  });
+  return anthropic;
+}
+
 // ─────────────────────────────────────────────
-// Chat conversation flow
+// Claude API: System prompt + Tools
 // ─────────────────────────────────────────────
-const FLOW = [
-  {
-    key: 'intro',
-    bot: 'はじめまして！北海道の旅プラン作りをお手伝いします。<br>いくつか質問させてください ✿',
-    delay: 600,
-    next: 'budget',
-    autoAdvance: true,
-  },
-  {
-    key: 'budget',
-    bot: '<strong>1. ご予算</strong>はどれくらいですか？(お一人さまの目安)',
-    type: 'choice',
-    options: [
-      { label: '〜3万円',     value: '3' },
-      { label: '〜5万円',     value: '5' },
-      { label: '〜10万円',    value: '10' },
-      { label: '10万円以上',  value: '20' },
-      { label: '気にしない',   value: 'any' },
-    ],
-    save: 'budget',
-    next: 'duration',
-  },
-  {
-    key: 'duration',
-    bot: '<strong>2. 日程</strong>はどれくらいですか？',
-    type: 'choice',
-    options: [
-      { label: '日帰り',   value: '0' },
-      { label: '1泊2日',   value: '1' },
-      { label: '2泊3日',   value: '2' },
-      { label: '3泊以上',  value: '3' },
-    ],
-    save: 'duration',
-    next: 'themes',
-  },
-  {
-    key: 'themes',
-    bot: '<strong>3. 興味のあるテーマ</strong>を教えてください (複数選択可)',
-    type: 'multi',
-    options: [
-      { label: '🌳 自然',      value: 'nature' },
-      { label: '♨️ 温泉',      value: 'hotspring' },
-      { label: '🍜 グルメ',    value: 'food' },
-      { label: '🏙️ 街・施設',  value: 'city' },
-      { label: '🏯 文化・歴史', value: 'culture' },
-      { label: '🌸 季節の風物詩', value: 'season' },
-    ],
-    save: 'themes',
-    next: 'regions',
-  },
-  {
-    key: 'regions',
-    bot: '<strong>4. 行きたいエリア</strong>を選んでください (複数選択可)',
-    type: 'multi',
-    options: [
-      { label: '道央（札幌・小樽・富良野・美瑛）', value: 'doo' },
-      { label: '道南（函館・松前・大沼）',         value: 'donan' },
-      { label: '道東（知床・釧路・網走）',         value: 'doto' },
-      { label: '道北（旭川・稚内・利尻礼文）',     value: 'dohoku' },
-      { label: 'おまかせ',                          value: 'any' },
-    ],
-    save: 'regions',
-    next: 'musts',
-  },
-  {
-    key: 'musts',
-    bot: '<strong>5. マストで行きたい場所</strong>はありますか？<br>(地名やスポット名を自由入力。なければ「特になし」でOK)',
-    type: 'text',
-    placeholder: '例: 函館山, 旭山動物園',
-    save: 'musts',
-    next: 'wrap',
-  },
-  {
-    key: 'wrap',
-    bot: 'ありがとうございます！条件にぴったりのスポットを<strong id="match-count">−</strong>件ピックアップしました。<br>下のカードを <strong>右にスワイプ=行きたい</strong>、<strong>左でスキップ</strong>で絞り込んでください ✿',
-    delay: 800,
-    onEnter: () => {
-      buildCandidates();
-      $('#match-count') && ($('#match-count').textContent = state.candidates.length);
-      revealSwipe();
+const SPOTS_FOR_AI = SPOTS.map(s => ({
+  id: s.id,
+  name: s.name,
+  region: s.region,
+  area: s.area,
+  categories: s.categories,
+  bestSeason: s.bestSeason,
+  description: s.description,
+}));
+
+const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナーです。ユーザーと自然な会話で旅の希望をヒアリングし、北海道の観光スポット情報から最適な場所を提案してください。
+
+【トーン】
+- 親しみやすく、ただし大人向けの落ち着いたトーン
+- 絵文字や「♪」「！」の多用は避ける
+- 1〜2文で簡潔に。長文の説明は避ける
+
+【聞き出す情報】
+質問は一度に1〜2個まで、テンポよく対話してください。最低でも3つの条件を把握したら suggest_spots ツールを呼びます。
+1. 旅行の日程・期間
+2. おおよその予算 (任意)
+3. 興味のあるテーマ(自然/温泉/グルメ/街/文化/季節 など)
+4. マストで行きたい場所 (任意)
+5. 同行者・出発地 (任意)
+
+【スポット選定の指針】
+- ユーザーの条件に最も合う 8〜16 件を選ぶ
+- 日帰り 6-8件、1泊 8-12件、2泊 12-16件、3泊+ 14-18件
+- エリアと季節のバランスを考慮
+- 同じエリアばかりにならないよう調整 (移動が現実的な範囲で)
+- マスト箇所は必ず含める
+- カテゴリの希望に沿いつつ、隠れた名所も1〜2件入れて良い
+
+【ツール使用】
+- 情報が揃ったら suggest_spots を呼ぶ
+- ユーザーが「もっと候補が欲しい」「条件を変えたい」と言えば、別の組み合わせで再度呼んでよい
+- 各ツール呼び出しに 1〜2文の選定理由(summary)を添える
+
+【出力】
+- 親しみやすく簡潔に
+- ユーザーが言ったことを軽く確認しながら進める
+`;
+
+function buildSystem() {
+  return [
+    { type: 'text', text: SYSTEM_INSTRUCTIONS },
+    {
+      type: 'text',
+      text: `# 利用可能な北海道観光スポット (64件)\n以下のスポットの中から提案してください。​\n\n${JSON.stringify(SPOTS_FOR_AI)}`,
+      cache_control: { type: 'ephemeral' },
     },
+  ];
+}
+
+const TOOLS = [{
+  name: 'suggest_spots',
+  description: '会話で集めた条件に基づき、おすすめの観光スポットIDを提案する。ユーザーが満足するまで何度でも呼べる。8〜16件をリストで返す。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      spot_ids: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '提案するスポットIDのリスト(8〜16件)。提供されたスポットデータの id を使用。',
+      },
+      summary: {
+        type: 'string',
+        description: '提案の根拠を1〜2文で。例: 「札幌〜小樽の冬旅と温泉重視で、グルメスポットも含めました。」',
+      },
+    },
+    required: ['spot_ids', 'summary'],
   },
-];
+}];
 
-let typingTimer = null;
-
+// ─────────────────────────────────────────────
+// Chat UI helpers
+// ─────────────────────────────────────────────
 function addMessage(text, type = 'bot') {
   const wrap = $('#chat-window');
   const bubble = document.createElement('div');
@@ -221,205 +220,195 @@ function showTyping() {
   return bubble;
 }
 
-function renderInput(step) {
+function renderFreeTextInput(autoFocus = true) {
   const box = $('#chat-input');
-  box.innerHTML = '';
-  if (!step) return;
-
-  if (step.type === 'choice') {
-    step.options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'chat-chip';
-      btn.type = 'button';
-      btn.textContent = opt.label;
-      btn.addEventListener('click', () => pickChoice(step, opt));
-      box.appendChild(btn);
-    });
-  } else if (step.type === 'multi') {
-    const selected = new Set();
-    const chips = [];
-    step.options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'chat-chip chat-chip-multi';
-      btn.type = 'button';
-      btn.textContent = opt.label;
-      btn.addEventListener('click', () => {
-        if (selected.has(opt.value)) {
-          selected.delete(opt.value);
-          btn.classList.remove('selected');
-        } else {
-          if (opt.value === 'any') {
-            chips.forEach(c => c !== btn && c.classList.remove('selected'));
-            selected.clear();
-          } else {
-            const anyBtn = chips.find(c => c.dataset.value === 'any');
-            if (anyBtn) { anyBtn.classList.remove('selected'); selected.delete('any'); }
-          }
-          selected.add(opt.value);
-          btn.classList.add('selected');
-        }
-        confirmBtn.disabled = selected.size === 0;
-      });
-      btn.dataset.value = opt.value;
-      box.appendChild(btn);
-      chips.push(btn);
-    });
-    const confirmBtn = document.createElement('button');
-    confirmBtn.type = 'button';
-    confirmBtn.className = 'chat-confirm';
-    confirmBtn.textContent = '決定';
-    confirmBtn.disabled = true;
-    confirmBtn.addEventListener('click', () => {
-      pickMulti(step, [...selected], chips);
-    });
-    box.appendChild(confirmBtn);
-  } else if (step.type === 'text') {
-    const wrap = document.createElement('div');
-    wrap.className = 'chat-text-input';
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = step.placeholder || '';
-    const send = document.createElement('button');
-    send.type = 'button';
-    send.className = 'chat-send';
-    send.textContent = '送信';
-    const skip = document.createElement('button');
-    skip.type = 'button';
-    skip.className = 'chat-skip';
-    skip.textContent = '特になし';
-    const handleSend = (text) => {
-      addMessage(text || '特になし', 'user');
-      state.answers[step.save] = text || '';
-      goNext(step.next);
-    };
-    send.addEventListener('click', () => handleSend(input.value.trim()));
-    skip.addEventListener('click', () => handleSend(''));
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); handleSend(input.value.trim()); }
-    });
-    wrap.append(input, send, skip);
-    box.appendChild(wrap);
-  }
+  box.innerHTML = `
+    <div class="chat-text-input">
+      <input type="text" id="user-text-input" placeholder="返事を入力..." autocomplete="off" />
+      <button type="button" class="chat-send" id="user-text-send">送信</button>
+    </div>`;
+  const input = $('#user-text-input');
+  const send = $('#user-text-send');
+  const handle = () => {
+    const text = input.value.trim();
+    if (!text || state.isStreaming) return;
+    box.innerHTML = '';
+    sendUserMessage(text);
+  };
+  send.addEventListener('click', handle);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); handle(); }
+  });
+  if (autoFocus) setTimeout(() => input.focus(), 200);
 }
 
-function pickChoice(step, opt) {
-  addMessage(opt.label, 'user');
-  state.answers[step.save] = opt.value;
-  goNext(step.next);
+function renderApiKeyPrompt() {
+  const wrap = $('#chat-window');
+  wrap.innerHTML = '';
+  addMessage(
+    'AI 旅プランを使うには、Claude API キーの設定が必要です。<br>右上の <strong>設定アイコン</strong> から API キーを登録してください。',
+    'bot'
+  );
+  const box = $('#chat-input');
+  box.innerHTML = `
+    <button type="button" class="chat-confirm" id="open-settings-from-chat">API キーを設定する</button>
+  `;
+  $('#open-settings-from-chat')?.addEventListener('click', openSettingsModal);
 }
 
-function pickMulti(step, values, chips) {
-  const labels = chips.filter(c => c.classList.contains('selected')).map(c => c.textContent).join(' / ');
-  addMessage(labels, 'user');
-  state.answers[step.save] = values;
-  goNext(step.next);
-}
-
-function findStep(key) { return FLOW.find(s => s.key === key); }
-
-function goNext(key) {
-  $('#chat-input').innerHTML = '';
-  const step = findStep(key);
-  if (!step) return;
-
-  const typing = showTyping();
-  const delay = step.delay || (600 + Math.random() * 400);
-  typingTimer = setTimeout(() => {
-    typing.remove();
-    addMessage(step.bot, 'bot');
-
-    if (step.onEnter) step.onEnter();
-
-    if (step.autoAdvance) {
-      setTimeout(() => goNext(step.next), 700);
-    } else if (step.type) {
-      renderInput(step);
-    }
-  }, delay);
-}
-
-function startChat(initialText) {
-  $('#chat-window').innerHTML = '';
-  $('#chat-input').innerHTML = '';
+// ─────────────────────────────────────────────
+// Conversation with Claude
+// ─────────────────────────────────────────────
+async function startAiConversation(initialText) {
+  // Reset
   Object.assign(state, {
-    step: 0,
-    answers: { budget: null, duration: null, themes: [], regions: [], musts: '', intro: '' },
+    apiMessages: [],
+    isStreaming: false,
     candidates: [],
     cardIndex: 0,
     likes: [],
     skips: [],
     history: [],
   });
+  $('#chat-window').innerHTML = '';
+  $('#chat-input').innerHTML = '';
   $('#swipe-section').hidden = true;
   $('#itinerary-section').hidden = true;
   $('#swipe-empty').hidden = true;
   refreshFavMarkers();
 
+  if (!anthropic) {
+    const a = await initAnthropic();
+    if (!a) { renderApiKeyPrompt(); return; }
+  }
+
   if (initialText && initialText.trim()) {
-    state.answers.intro = initialText.trim();
-    // Show user's input as the first chat message
-    addMessage(escapeHtml(initialText.trim()), 'user');
-    // Bot acknowledges, then begins structured Q&A
-    setTimeout(() => {
-      const typing = showTyping();
-      setTimeout(() => {
-        typing.remove();
-        addMessage('ありがとうございます！もう少し詳しく教えていただけると、よりぴったりのプランをご提案できます ✿', 'bot');
-        setTimeout(() => goNext('budget'), 700);
-      }, 800);
-    }, 400);
+    await sendUserMessage(initialText.trim());
   } else {
-    goNext('intro');
-  }
-}
-
-// ─────────────────────────────────────────────
-// Filter candidates based on chat answers
-// ─────────────────────────────────────────────
-function buildCandidates() {
-  const a = state.answers;
-  const themes = a.themes || [];
-  const regions = (a.regions || []).filter(r => r !== 'any');
-  const mustText = (a.musts || '').toLowerCase();
-
-  let candidates = SPOTS.slice();
-
-  // Region filter
-  if (regions.length) {
-    candidates = candidates.filter(s => regions.includes(s.region));
-  }
-  // Theme filter
-  if (themes.length) {
-    candidates = candidates.filter(s =>
-      s.categories.some(c => themes.includes(c))
+    // Greeting opener — bot turn first, no user message
+    await sendUserMessage(
+      'こんにちは。北海道の旅プランを相談したいです。',
+      { hideUserBubble: false }
     );
   }
+}
 
-  // Score & sort: prefer spots matching musts, then matching themes count
-  function score(spot) {
-    let sc = 0;
-    if (mustText) {
-      const hay = [spot.name, spot.nameEn, spot.area].join(' ').toLowerCase();
-      const words = mustText.split(/[\s,、・]/).filter(Boolean);
-      words.forEach(w => { if (hay.includes(w)) sc += 100; });
-    }
-    sc += spot.categories.filter(c => themes.includes(c)).length * 10;
-    sc += Math.random();
-    return sc;
+async function sendUserMessage(text, options = {}) {
+  if (state.isStreaming) return;
+  state.isStreaming = true;
+
+  if (!options.hideUserBubble) {
+    addMessage(escapeHtml(text), 'user');
   }
-  candidates.sort((a, b) => score(b) - score(a));
+  state.apiMessages.push({ role: 'user', content: text });
+  $('#chat-input').innerHTML = '';
 
-  // Limit to a reasonable number based on duration
-  const dur = parseInt(a.duration || '1', 10);
-  const limit = [8, 12, 16, 24][dur] || 12;
-  candidates = candidates.slice(0, limit);
+  await runAssistantTurn();
 
-  state.candidates = candidates;
+  state.isStreaming = false;
+}
+
+async function runAssistantTurn() {
+  let typing = showTyping();
+  let bubble = null;
+  let accumulated = '';
+
+  try {
+    const stream = await anthropic.messages.stream({
+      model: 'claude-opus-4-7',
+      max_tokens: 1500,
+      system: buildSystem(),
+      tools: TOOLS,
+      messages: state.apiMessages,
+    });
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_start') {
+        if (event.content_block.type === 'text') {
+          if (typing) { typing.remove(); typing = null; }
+          bubble = addMessage('', 'bot');
+        }
+      } else if (event.type === 'content_block_delta') {
+        if (event.delta.type === 'text_delta') {
+          accumulated += event.delta.text;
+          if (bubble) {
+            bubble.querySelector('.chat-bubble').innerHTML = escapeHtml(accumulated).replace(/\n/g, '<br>');
+            const w = $('#chat-window');
+            w.scrollTop = w.scrollHeight;
+          }
+        }
+      } else if (event.type === 'content_block_stop') {
+        accumulated = '';
+      }
+    }
+
+    const finalMessage = await stream.finalMessage();
+    if (typing) { typing.remove(); typing = null; }
+
+    state.apiMessages.push({ role: 'assistant', content: finalMessage.content });
+
+    // Check for tool use
+    const toolUse = finalMessage.content.find(b => b.type === 'tool_use');
+    if (toolUse && toolUse.name === 'suggest_spots') {
+      const ok = handleSuggestSpots(toolUse.input);
+      state.apiMessages.push({
+        role: 'user',
+        content: [{
+          type: 'tool_result',
+          tool_use_id: toolUse.id,
+          content: ok
+            ? `スポット候補(${state.candidates.length}件)をユーザーに表示しました。次は会話を続けて、ユーザーがもっと候補が欲しいか / 条件を変えたいかなどあれば対応してください。`
+            : 'スポットIDの一部が無効でした。再度提案してください。'
+        }]
+      });
+      // Continue conversation flow
+      await runAssistantTurn();
+      return;
+    }
+
+    // No tool used — let user reply
+    if (finalMessage.stop_reason === 'end_turn' || finalMessage.stop_reason === 'max_tokens') {
+      renderFreeTextInput();
+    }
+
+  } catch (err) {
+    if (typing) typing.remove();
+    handleApiError(err);
+  }
+}
+
+function handleSuggestSpots(input) {
+  const ids = (input.spot_ids || []).filter(Boolean);
+  const spots = ids.map(id => SPOTS.find(s => s.id === id)).filter(Boolean);
+  if (spots.length < 4) return false;
+
+  state.candidates = spots;
   state.cardIndex = 0;
+  state.likes = [];
+  state.skips = [];
+  state.history = [];
+  refreshFavMarkers();
+  revealSwipe();
+  return true;
+}
+
+function handleApiError(err) {
+  const message = err?.message || String(err);
+  let advice = '';
+  if (err?.status === 401) advice = 'API キーが正しくないか、無効化されている可能性があります。右上の設定から再入力してください。';
+  else if (err?.status === 429) advice = 'レート制限に達しました。少し時間を空けてから再試行してください。';
+  else if (err?.status >= 500) advice = 'Anthropic 側で一時的なエラーが発生しているようです。しばらくしてから再試行してください。';
+  else if (message.includes('fetch')) advice = 'ネットワーク接続をご確認ください。';
+
+  addMessage(
+    `⚠️ エラーが発生しました：<br><code style="font-size:0.85em">${escapeHtml(message)}</code><br>${advice}`,
+    'bot'
+  );
+  renderFreeTextInput(false);
 }
 
 // ─────────────────────────────────────────────
-// Swipe deck
+// Swipe (existing functionality)
 // ─────────────────────────────────────────────
 function revealSwipe() {
   const section = $('#swipe-section');
@@ -436,6 +425,7 @@ function buildSwipeDeck() {
   });
   updateSwipeProgress();
   attachTopCard();
+  $('#swipe-empty').hidden = true;
 }
 
 function buildSwipeCard(spot, idx) {
@@ -463,8 +453,7 @@ function buildSwipeCard(spot, idx) {
       <p class="swipe-card-desc">${escapeHtml(spot.description)}</p>
       <div class="swipe-card-meta">${cats}</div>
       <p class="swipe-card-access">📍 ${escapeHtml(spot.accessTime)}</p>
-    </div>
-  `;
+    </div>`;
   return card;
 }
 
@@ -481,7 +470,6 @@ function attachTopCard() {
   if (!card) { showSwipeEmpty(); return; }
   if (activeCard === card) return;
   activeCard = card;
-
   card.addEventListener('pointerdown', onPointerDown);
 }
 
@@ -489,13 +477,7 @@ function onPointerDown(e) {
   if (e.button && e.button !== 0) return;
   const card = e.currentTarget;
   card.setPointerCapture(e.pointerId);
-  dragData = {
-    startX: e.clientX,
-    startY: e.clientY,
-    deltaX: 0,
-    deltaY: 0,
-    card,
-  };
+  dragData = { startX: e.clientX, startY: e.clientY, deltaX: 0, deltaY: 0, card };
   card.classList.add('is-dragging');
   card.addEventListener('pointermove', onPointerMove);
   card.addEventListener('pointerup', onPointerUp);
@@ -509,8 +491,8 @@ function onPointerMove(e) {
   const card = dragData.card;
   card.style.transform = `translate(${dragData.deltaX}px, ${dragData.deltaY * 0.3}px) rotate(${dragData.deltaX / 18}deg)`;
   const op = Math.min(1, Math.abs(dragData.deltaX) / 120);
-  card.style.setProperty('--like-op',  dragData.deltaX > 0 ? op : 0);
-  card.style.setProperty('--skip-op',  dragData.deltaX < 0 ? op : 0);
+  card.style.setProperty('--like-op', dragData.deltaX > 0 ? op : 0);
+  card.style.setProperty('--skip-op', dragData.deltaX < 0 ? op : 0);
 }
 
 function onPointerUp(e) {
@@ -522,7 +504,6 @@ function onPointerUp(e) {
   card.classList.remove('is-dragging');
   const dx = dragData.deltaX;
   dragData = null;
-
   if (dx > 100) finishSwipe(card, 'like');
   else if (dx < -100) finishSwipe(card, 'skip');
   else {
@@ -560,7 +541,6 @@ function undoLast() {
   if (last.direction === 'like') state.likes = state.likes.filter(x => x !== last.id);
   else state.skips = state.skips.filter(x => x !== last.id);
   refreshFavMarkers();
-  // Rebuild the deck quick & dirty: re-insert the card visually at the top
   const spot = state.candidates.find(s => s.id === last.id);
   if (!spot) return;
   const newCard = buildSwipeCard(spot, state.candidates.indexOf(spot));
@@ -580,9 +560,7 @@ function updateSwipeProgress() {
   $('#swipe-progress-text').textContent = `${done} / ${total}`;
 }
 
-function showSwipeEmpty() {
-  $('#swipe-empty').hidden = false;
-}
+function showSwipeEmpty() { $('#swipe-empty').hidden = false; }
 
 // ─────────────────────────────────────────────
 // Itinerary
@@ -597,10 +575,8 @@ function showItinerary() {
   if (liked.length === 0) {
     list.innerHTML = `<p class="itinerary-empty">気になるスポットが選ばれていません。<br>もう一度プランを作ってみてください。</p>`;
   } else {
-    // Sort by region to make a logical order
     const regionOrder = ['doo','donan','doto','dohoku'];
     liked.sort((a, b) => regionOrder.indexOf(a.region) - regionOrder.indexOf(b.region));
-
     list.innerHTML = liked.map((spot, i) => `
       <article class="itinerary-item">
         <div class="itinerary-num">${String(i+1).padStart(2,'0')}</div>
@@ -617,7 +593,6 @@ function showItinerary() {
   section.hidden = false;
   setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
 
-  // Fit map to liked spots
   if (liked.length && map) {
     const bounds = L.latLngBounds(liked.map(s => s.coords).filter(Boolean));
     if (bounds.isValid()) map.flyToBounds(bounds, { padding: [40, 40] });
@@ -625,42 +600,91 @@ function showItinerary() {
 }
 
 // ─────────────────────────────────────────────
-// Wire up
+// Settings modal
+// ─────────────────────────────────────────────
+function openSettingsModal() {
+  const ov = $('#settings-overlay');
+  if (!ov) return;
+  ov.hidden = false;
+  $('#api-key-input').value = getApiKey();
+  $('#settings-status').className = 'settings-status';
+  $('#settings-status').textContent = '';
+}
+
+function closeSettingsModal() {
+  $('#settings-overlay').hidden = true;
+}
+
+async function handleSaveApiKey() {
+  const input = $('#api-key-input');
+  const status = $('#settings-status');
+  const key = input.value.trim();
+  if (!key) {
+    status.className = 'settings-status is-error';
+    status.textContent = 'API キーを入力してください';
+    return;
+  }
+  setApiKey(key);
+  await initAnthropic();
+  status.className = 'settings-status is-success';
+  status.textContent = '保存しました。AIプランナーが使えます ✓';
+
+  setTimeout(() => {
+    closeSettingsModal();
+    chatStarted = false;
+    startAiConversation('');
+    document.querySelector('#planner')?.scrollIntoView({ behavior: 'smooth' });
+  }, 800);
+}
+
+function handleClearApiKey() {
+  clearApiKey();
+  anthropic = null;
+  $('#api-key-input').value = '';
+  const status = $('#settings-status');
+  status.className = 'settings-status is-success';
+  status.textContent = 'API キーを削除しました';
+  // If chat is visible, reset to prompt
+  if (chatStarted) {
+    chatStarted = false;
+    renderApiKeyPrompt();
+  }
+}
+
+// ─────────────────────────────────────────────
+// Boot
 // ─────────────────────────────────────────────
 let chatStarted = false;
 function maybeStartChat() {
   if (chatStarted) return;
   chatStarted = true;
-  startChat();
+  startAiConversation('');
 }
 
 function scrollToPlanner() {
-  const planner = $('#planner');
-  if (planner) planner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#planner')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function launchChatFromInput(text) {
   chatStarted = true;
   scrollToPlanner();
-  // Slight delay so the scroll begins before chat renders
-  setTimeout(() => startChat(text), 300);
+  setTimeout(() => startAiConversation(text), 300);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initMap();
+  await initAnthropic();
 
-  // Map CTA: form submit → start chat with input text
+  // Map CTA form
   $('#map-cta-form')?.addEventListener('submit', e => {
     e.preventDefault();
-    const input = $('#map-cta-input');
-    const text = (input?.value || '').trim();
+    const text = ($('#map-cta-input')?.value || '').trim();
     launchChatFromInput(text);
-    if (input) input.value = '';
+    if ($('#map-cta-input')) $('#map-cta-input').value = '';
   });
-  // Map CTA: "skip" → just start chat without text
   $('#map-cta-skip')?.addEventListener('click', () => launchChatFromInput(''));
 
-  // Auto-start chat once planner section enters viewport (fallback)
+  // Auto-start chat once planner section enters viewport
   const plannerEl = $('#planner');
   if (plannerEl && 'IntersectionObserver' in window) {
     const obs = new IntersectionObserver(entries => {
@@ -674,7 +698,7 @@ document.addEventListener('DOMContentLoaded', () => {
     obs.observe(plannerEl);
   }
 
-  // Smooth-scroll for in-page anchor links
+  // Smooth-scroll for in-page anchors
   $$('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
       const id = a.getAttribute('href');
@@ -685,21 +709,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Re-flow Leaflet after layout settles
   setTimeout(() => map && map.invalidateSize(), 600);
 
+  // Reset chat
   $('#reset-chat')?.addEventListener('click', () => { chatStarted = false; maybeStartChat(); });
   $('#restart-btn')?.addEventListener('click', () => {
     chatStarted = false;
     scrollToPlanner();
     setTimeout(() => maybeStartChat(), 300);
   });
-  $('#swipe-skip')?.addEventListener('click', () => {
-    const c = getTopCard(); if (c) finishSwipe(c, 'skip');
-  });
-  $('#swipe-like')?.addEventListener('click', () => {
-    const c = getTopCard(); if (c) finishSwipe(c, 'like');
-  });
+
+  // Swipe actions
+  $('#swipe-skip')?.addEventListener('click', () => { const c = getTopCard(); if (c) finishSwipe(c, 'skip'); });
+  $('#swipe-like')?.addEventListener('click', () => { const c = getTopCard(); if (c) finishSwipe(c, 'like'); });
   $('#swipe-undo')?.addEventListener('click', undoLast);
   $('#show-itinerary')?.addEventListener('click', showItinerary);
+
+  // Settings modal
+  $('#open-settings')?.addEventListener('click', openSettingsModal);
+  $('#settings-close')?.addEventListener('click', closeSettingsModal);
+  $('#settings-overlay')?.addEventListener('click', e => {
+    if (e.target.id === 'settings-overlay') closeSettingsModal();
+  });
+  $('#save-api-key')?.addEventListener('click', handleSaveApiKey);
+  $('#clear-api-key')?.addEventListener('click', handleClearApiKey);
+  $('#toggle-key-visibility')?.addEventListener('click', () => {
+    const input = $('#api-key-input');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('#settings-overlay').hidden) closeSettingsModal();
+  });
 });
