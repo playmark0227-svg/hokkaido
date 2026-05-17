@@ -338,12 +338,12 @@ function goNext(key) {
   }, delay);
 }
 
-function startChat() {
+function startChat(initialText) {
   $('#chat-window').innerHTML = '';
   $('#chat-input').innerHTML = '';
   Object.assign(state, {
     step: 0,
-    answers: { budget: null, duration: null, themes: [], regions: [], musts: '' },
+    answers: { budget: null, duration: null, themes: [], regions: [], musts: '', intro: '' },
     candidates: [],
     cardIndex: 0,
     likes: [],
@@ -354,7 +354,23 @@ function startChat() {
   $('#itinerary-section').hidden = true;
   $('#swipe-empty').hidden = true;
   refreshFavMarkers();
-  goNext('intro');
+
+  if (initialText && initialText.trim()) {
+    state.answers.intro = initialText.trim();
+    // Show user's input as the first chat message
+    addMessage(escapeHtml(initialText.trim()), 'user');
+    // Bot acknowledges, then begins structured Q&A
+    setTimeout(() => {
+      const typing = showTyping();
+      setTimeout(() => {
+        typing.remove();
+        addMessage('ありがとうございます！もう少し詳しく教えていただけると、よりぴったりのプランをご提案できます ✿', 'bot');
+        setTimeout(() => goNext('budget'), 700);
+      }, 800);
+    }, 400);
+  } else {
+    goNext('intro');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -618,11 +634,33 @@ function maybeStartChat() {
   startChat();
 }
 
+function scrollToPlanner() {
+  const planner = $('#planner');
+  if (planner) planner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function launchChatFromInput(text) {
+  chatStarted = true;
+  scrollToPlanner();
+  // Slight delay so the scroll begins before chat renders
+  setTimeout(() => startChat(text), 300);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Wait for Leaflet (deferred) before initializing map
   initMap();
 
-  // Auto-start chat once planner section enters viewport
+  // Map CTA: form submit → start chat with input text
+  $('#map-cta-form')?.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = $('#map-cta-input');
+    const text = (input?.value || '').trim();
+    launchChatFromInput(text);
+    if (input) input.value = '';
+  });
+  // Map CTA: "skip" → just start chat without text
+  $('#map-cta-skip')?.addEventListener('click', () => launchChatFromInput(''));
+
+  // Auto-start chat once planner section enters viewport (fallback)
   const plannerEl = $('#planner');
   if (plannerEl && 'IntersectionObserver' in window) {
     const obs = new IntersectionObserver(entries => {
@@ -634,9 +672,6 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }, { threshold: 0.25 });
     obs.observe(plannerEl);
-  } else {
-    // Fallback: start immediately
-    maybeStartChat();
   }
 
   // Smooth-scroll for in-page anchor links
@@ -650,11 +685,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Re-flow Leaflet after layout settles (in case fonts shift sizing)
+  // Re-flow Leaflet after layout settles
   setTimeout(() => map && map.invalidateSize(), 600);
 
   $('#reset-chat')?.addEventListener('click', () => { chatStarted = false; maybeStartChat(); });
-  $('#restart-btn')?.addEventListener('click', () => { chatStarted = false; maybeStartChat(); document.querySelector('#planner').scrollIntoView({ behavior: 'smooth' }); });
+  $('#restart-btn')?.addEventListener('click', () => {
+    chatStarted = false;
+    scrollToPlanner();
+    setTimeout(() => maybeStartChat(), 300);
+  });
   $('#swipe-skip')?.addEventListener('click', () => {
     const c = getTopCard(); if (c) finishSwipe(c, 'skip');
   });

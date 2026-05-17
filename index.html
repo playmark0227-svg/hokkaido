@@ -69,13 +69,24 @@
       <span class="legend-fav"><span class="dot dot-fav"></span>選択中</span>
     </div>
 
-    <!-- Floating CTA -->
+    <!-- Floating CTA with chat input -->
     <div class="map-cta">
-      <p>地図から探すか、AIに相談して旅プランを作ろう</p>
-      <a href="#planner" class="btn" data-scroll>
-        AIに旅プランを相談する
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </a>
+      <p class="map-cta-label">地図から探すか、AIに相談して旅プランを作ろう</p>
+      <form class="map-cta-form" id="map-cta-form" autocomplete="off">
+        <input
+          type="text"
+          id="map-cta-input"
+          placeholder="例: 札幌に2泊、温泉とグルメを楽しみたい"
+          aria-label="AIへの相談内容を入力"
+        />
+        <button type="submit" class="map-cta-send" aria-label="送信">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+      </form>
+      <button type="button" class="map-cta-skip" id="map-cta-skip">入力しないで進める</button>
     </div>
   </section>
 
