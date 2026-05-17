@@ -124,7 +124,7 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
     },
     body: JSON.stringify({
       model: 'claude-opus-4-7',
-      max_tokens: 1500,
+      max_tokens: 2500,
       system,
       tools,
       messages,
@@ -134,18 +134,21 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
 
   if (!response.ok) {
     let errMsg = `HTTP ${response.status}`;
+    let errType = null;
     try {
       const errData = await response.json();
-      errMsg = errData?.error?.message || errMsg;
-      const e = new Error(errMsg);
-      e.status = response.status;
-      e.type = errData?.error?.type;
-      throw e;
+      if (errData?.error?.message) errMsg = errData.error.message;
+      if (errData?.error?.type) errType = errData.error.type;
     } catch (_) {
-      const e = new Error(errMsg);
-      e.status = response.status;
-      throw e;
+      // JSON parse failed - keep generic message
     }
+    const e = new Error(errMsg);
+    e.status = response.status;
+    if (errType) e.type = errType;
+    throw e;
+  }
+  if (!response.body) {
+    throw new Error('レスポンスにストリームがありません (response.body is null)');
   }
 
   // Parse SSE stream
@@ -274,7 +277,7 @@ function buildSystem() {
     { type: 'text', text: SYSTEM_INSTRUCTIONS },
     {
       type: 'text',
-      text: `# 利用可能な北海道観光スポット (64件)\n以下のスポットの中から提案してください。​\n\n${JSON.stringify(SPOTS_FOR_AI)}`,
+      text: `# 利用可能な北海道観光スポット (64件)\n以下のスポットの中から提案してください。\n\n${JSON.stringify(SPOTS_FOR_AI)}`,
       cache_control: { type: 'ephemeral' },
     },
   ];
@@ -481,15 +484,26 @@ function handleSuggestSpots(input) {
 }
 
 function handleApiError(err) {
+  // Roll back the last user-text message so a retry doesn't pile up duplicates.
+  // We only pop simple text messages — tool_result entries stay so we don't
+  // orphan an assistant tool_use.
+  const last = state.apiMessages[state.apiMessages.length - 1];
+  if (last && last.role === 'user' && typeof last.content === 'string') {
+    state.apiMessages.pop();
+  }
+
   const message = err?.message || String(err);
   let advice = '';
-  if (err?.status === 401) advice = 'API キーが正しくないか、無効化されている可能性があります。右上の設定から再入力してください。';
-  else if (err?.status === 429) advice = 'レート制限に達しました。少し時間を空けてから再試行してください。';
+  if (err?.status === 401) advice = 'API キーが正しくないか、無効化されている可能性があります。右上の歯車アイコンから再入力してください。';
+  else if (err?.status === 403) advice = 'このキーには利用権限がないようです。Anthropic Console でキーの状態を確認してください。';
+  else if (err?.status === 429) advice = 'レート制限または予算上限に達しました。少し時間を空けてから再試行してください。';
+  else if (err?.status === 400) advice = 'リクエストが不正です (パラメータエラー)。コンソールログ (F12) で詳細をご確認ください。';
   else if (err?.status >= 500) advice = 'Anthropic 側で一時的なエラーが発生しているようです。しばらくしてから再試行してください。';
-  else if (message.includes('fetch')) advice = 'ネットワーク接続をご確認ください。';
+  else if (message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network')) advice = 'ネットワーク接続をご確認ください。';
+  else if (message.toLowerCase().includes('cors')) advice = 'CORSエラー。ブラウザの拡張機能や広告ブロッカーが原因の可能性があります。';
 
   addMessage(
-    `⚠️ エラーが発生しました：<br><code style="font-size:0.85em">${escapeHtml(message)}</code><br>${advice}`,
+    `⚠️ エラーが発生しました：<br><code style="font-size:0.85em">${escapeHtml(message)}</code>${advice ? '<br>' + advice : ''}`,
     'bot'
   );
   renderFreeTextInput(false);
@@ -694,13 +708,17 @@ function openSettingsModal() {
   const ov = $('#settings-overlay');
   if (!ov) return;
   ov.hidden = false;
-  $('#api-key-input').value = getApiKey();
+  const input = $('#api-key-input');
+  input.value = getApiKey();
   $('#settings-status').className = 'settings-status';
   $('#settings-status').textContent = '';
+  setTimeout(() => input.focus(), 50);
 }
 
 function closeSettingsModal() {
-  $('#settings-overlay').hidden = true;
+  const ov = $('#settings-overlay');
+  if (!ov) return;
+  ov.hidden = true;
 }
 
 function handleSaveApiKey() {

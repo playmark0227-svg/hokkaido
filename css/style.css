@@ -1550,6 +1550,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   padding: 1rem;
   animation: fadeIn .2s ease-out;
 }
+/* `hidden` attribute must override the class display.
+   Without this `display: grid` wins over `[hidden] { display: none }`. */
+.settings-overlay[hidden] { display: none; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .settings-modal {
