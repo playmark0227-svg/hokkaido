@@ -19,6 +19,17 @@ const REGION_COLORS = {
   dohoku: '#4A8DC0',
 };
 
+// O(1) lookup map by spot ID
+const SPOT_BY_ID = Object.fromEntries(SPOTS.map(s => [s.id, s]));
+
+// Magic numbers extracted to named constants
+const SWIPE_THRESHOLD_PX = 100;
+const SWIPE_FLY_PX = 1200;
+const SWIPE_ROTATE_DIVISOR = 18;
+const MAX_TOOL_RECURSION = 5;
+const API_TIMEOUT_MS = 60_000;
+const SEARCH_DEBOUNCE_MS = 150;
+
 // ─────────────────────────────────────────────
 // MAP (Leaflet)
 // ─────────────────────────────────────────────
@@ -67,7 +78,8 @@ function addMarker(spot) {
 
 function refreshFavMarkers() {
   Object.entries(markerById).forEach(([id, marker]) => {
-    const spot = SPOTS.find(s => s.id === id);
+    const spot = SPOT_BY_ID[id];
+    if (!spot) return; // defensive: skip if data drift
     const isFav = state.likes.includes(id);
     const color = isFav ? '#E84A38' : (REGION_COLORS[spot.region] || '#3D2817');
     const icon = L.divIcon({
@@ -96,14 +108,32 @@ const state = {
   history: [],
 };
 
+// localStorage may throw in private browsing / disabled storage — guard every access.
+// Keep an in-memory fallback so the current tab still works.
+let memoryKey = '';
+function safeStorageGet(key) {
+  try { return localStorage.getItem(key); } catch (_) { return null; }
+}
+function safeStorageSet(key, value) {
+  try { localStorage.setItem(key, value); return true; } catch (_) { return false; }
+}
+function safeStorageRemove(key) {
+  try { localStorage.removeItem(key); } catch (_) { /* ignore */ }
+}
 function getApiKey() {
   if (typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim()) {
     return window.ANTHROPIC_API_KEY.trim();
   }
-  return localStorage.getItem(STORAGE_KEY) || '';
+  return safeStorageGet(STORAGE_KEY) || memoryKey || '';
 }
-function setApiKey(k) { localStorage.setItem(STORAGE_KEY, k); }
-function clearApiKey() { localStorage.removeItem(STORAGE_KEY); }
+function setApiKey(k) {
+  memoryKey = k;
+  return safeStorageSet(STORAGE_KEY, k);
+}
+function clearApiKey() {
+  memoryKey = '';
+  safeStorageRemove(STORAGE_KEY);
+}
 function hasConfiguredKey() {
   return typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim().length > 0;
 }
@@ -114,23 +144,41 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('API キーが設定されていません');
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-opus-4-7',
-      max_tokens: 2500,
-      system,
-      tools,
-      messages,
-      stream: true,
-    }),
-  });
+  // Abort after API_TIMEOUT_MS (default 60s) to avoid hanging requests.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: 2500,
+        system,
+        tools,
+        messages,
+        stream: true,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const e = new Error(`タイムアウト (${API_TIMEOUT_MS / 1000}秒以内に応答なし)`);
+      e.status = 0;
+      throw e;
+    }
+    throw err;
+  }
+  // Reset timer once headers arrive; keep guard for the streaming body too.
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     let errMsg = `HTTP ${response.status}`;
@@ -416,7 +464,16 @@ async function sendUserMessage(text, options = {}) {
   state.isStreaming = false;
 }
 
-async function runAssistantTurn() {
+async function runAssistantTurn(depth = 0) {
+  if (depth >= MAX_TOOL_RECURSION) {
+    addMessage(
+      `⚠️ ツール呼び出しが ${MAX_TOOL_RECURSION} 回連続したため、念のため停止しました。もう一度お話を続けてください。`,
+      'bot'
+    );
+    renderFreeTextInput();
+    return;
+  }
+
   let typing = showTyping();
   let bubble = null;
   let accumulated = '';
@@ -454,7 +511,7 @@ async function runAssistantTurn() {
             : 'スポットIDの一部が無効でした。再度提案してください。'
         }]
       });
-      await runAssistantTurn();
+      await runAssistantTurn(depth + 1);
       return;
     }
 
@@ -591,7 +648,7 @@ function onPointerMove(e) {
   dragData.deltaX = e.clientX - dragData.startX;
   dragData.deltaY = e.clientY - dragData.startY;
   const card = dragData.card;
-  card.style.transform = `translate(${dragData.deltaX}px, ${dragData.deltaY * 0.3}px) rotate(${dragData.deltaX / 18}deg)`;
+  card.style.transform = `translate(${dragData.deltaX}px, ${dragData.deltaY * 0.3}px) rotate(${dragData.deltaX / SWIPE_ROTATE_DIVISOR}deg)`;
   const op = Math.min(1, Math.abs(dragData.deltaX) / 120);
   card.style.setProperty('--like-op', dragData.deltaX > 0 ? op : 0);
   card.style.setProperty('--skip-op', dragData.deltaX < 0 ? op : 0);
@@ -606,8 +663,8 @@ function onPointerUp(e) {
   card.classList.remove('is-dragging');
   const dx = dragData.deltaX;
   dragData = null;
-  if (dx > 100) finishSwipe(card, 'like');
-  else if (dx < -100) finishSwipe(card, 'skip');
+  if (dx > SWIPE_THRESHOLD_PX) finishSwipe(card, 'like');
+  else if (dx < -SWIPE_THRESHOLD_PX) finishSwipe(card, 'skip');
   else {
     card.style.transform = '';
     card.style.setProperty('--like-op', 0);
@@ -616,7 +673,7 @@ function onPointerUp(e) {
 }
 
 function finishSwipe(card, direction) {
-  const dist = direction === 'like' ? 1200 : -1200;
+  const dist = direction === 'like' ? SWIPE_FLY_PX : -SWIPE_FLY_PX;
   card.style.transition = 'transform .4s ease, opacity .4s ease';
   card.style.transform = `translate(${dist}px, 80px) rotate(${dist / 40}deg)`;
   card.style.opacity = '0';
@@ -735,9 +792,14 @@ function handleSaveApiKey() {
     status.textContent = 'API キーの形式が正しくないようです (sk-ant- で始まる文字列のはず)';
     return;
   }
-  setApiKey(key);
-  status.className = 'settings-status is-success';
-  status.textContent = '保存しました。AIプランナーが使えます ✓';
+  const saved = setApiKey(key);
+  if (!saved) {
+    status.className = 'settings-status is-error';
+    status.textContent = 'ブラウザのストレージが無効です (プライベートブラウジング等)。このタブのみ動作します。';
+  } else {
+    status.className = 'settings-status is-success';
+    status.textContent = '保存しました。AIプランナーが使えます ✓';
+  }
 
   setTimeout(() => {
     closeSettingsModal();

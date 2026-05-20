@@ -3,17 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1B3A5F" />
   <title>ほっかいどう旅手帳 | マップとAIで作る、あなただけの北海道旅</title>
-  <meta name="description" content="北海道全域の観光スポットをマップから直感的に探し、AIに相談して旅プランを作れる観光ポータル。スワイプで気になる場所を選んで、あなただけの旅程を作りましょう。" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet">
+  <meta name="description" content="北海道全域の観光スポット64箇所をマップから直感的に探し、Claude AIに相談して旅プランを作れる観光ポータル。スワイプで気になる場所を選んで、あなただけの旅程を完成させましょう。" />
+  <link rel="canonical" href="https://playmark0227-svg.github.io/hokkaido/" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ほっかいどう旅手帳 | マップとAIで作る、あなただけの北海道旅" />
+  <meta property="og:description" content="北海道全域の観光スポット64箇所をマップから探し、AIに相談して旅プランを作る観光ポータル。" />
+  <meta property="og:url" content="https://playmark0227-svg.github.io/hokkaido/" />
+  <meta property="og:image" content="https://playmark0227-svg.github.io/hokkaido/assets/cover-poster.jpg" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta property="og:site_name" content="ほっかいどう旅手帳" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ほっかいどう旅手帳" />
+  <meta name="twitter:description" content="マップとAIで作る、あなただけの北海道旅。" />
+  <meta name="twitter:image" content="https://playmark0227-svg.github.io/hokkaido/assets/cover-poster.jpg" />
+
+  <!-- Preconnect / DNS hints -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preconnect" href="https://api.anthropic.com" crossorigin />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="dns-prefetch" href="//tile.openstreetmap.org" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+  <!-- JSON-LD structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "ほっかいどう旅手帳",
+    "alternateName": "Hokkaido Travel Note",
+    "url": "https://playmark0227-svg.github.io/hokkaido/",
+    "description": "北海道全域の観光スポットをマップとAIで探せる観光ポータル",
+    "inLanguage": "ja-JP"
+  }
+  </script>
 </head>
 <body class="has-fullmap">
+
+  <a href="#map-section" class="skip-link">本文へスキップ</a>
 
   <!-- ===== SVG Defs ===== -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -31,7 +69,7 @@
       <nav class="nav">
         <a href="index.html" class="brand">
           <span class="brand-icon">
-            <svg width="52" height="52" viewBox="0 0 100 100">
+            <svg aria-hidden="true" width="52" height="52" viewBox="0 0 100 100">
               <polygon points="50,12 88,80 12,80" fill="#F5C342" stroke="#3D2817" stroke-width="5" stroke-linejoin="round"/>
               <polygon points="50,12 64,38 36,38" fill="#FFF9EE" stroke="#3D2817" stroke-width="3.5" stroke-linejoin="round"/>
               <line x1="50" y1="12" x2="50" y2="4" stroke="#3D2817" stroke-width="3" stroke-linecap="round"/>
@@ -50,7 +88,7 @@
           <li><a href="business.html">掲載のご案内</a></li>
           <li>
             <button type="button" id="open-settings" class="nav-settings" aria-label="AI設定">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
@@ -66,7 +104,7 @@
   <div class="settings-overlay" id="settings-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
     <div class="settings-modal">
       <button type="button" class="settings-close" id="settings-close" aria-label="閉じる">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
       </button>
       <h3 id="settings-title">AI設定</h3>
       <p class="settings-desc">
@@ -78,7 +116,7 @@
         <div class="settings-input-row">
           <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" />
           <button type="button" id="toggle-key-visibility" class="settings-eye" aria-label="表示切替">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           </button>
         </div>
       </label>
@@ -96,8 +134,8 @@
   </div>
 
   <!-- ===== Full-screen Map ===== -->
-  <section class="map-full" id="map-section">
-    <div id="map"></div>
+  <section class="map-full" id="map-section" aria-label="北海道観光地マップ">
+    <div id="map" role="application" aria-label="北海道の観光スポット64箇所が表示されたインタラクティブマップ"></div>
 
     <!-- Legend overlay -->
     <div class="map-overlay-legend">
@@ -121,7 +159,7 @@
           aria-label="AIへの相談内容を入力"
         />
         <button type="submit" class="map-cta-send" aria-label="送信">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/>
             <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none"/>
           </svg>
@@ -166,13 +204,13 @@
         <div class="swipe-deck" id="swipe-deck"></div>
         <div class="swipe-actions">
           <button class="swipe-btn swipe-btn-skip" id="swipe-skip" type="button" aria-label="スキップ">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+            <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
           </button>
           <button class="swipe-btn swipe-btn-undo" id="swipe-undo" type="button" aria-label="戻す" disabled>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l6-6m-6 6l6 6m-6-6h12a6 6 0 0 1 0 12h-3"/></svg>
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l6-6m-6 6l6 6m-6-6h12a6 6 0 0 1 0 12h-3"/></svg>
           </button>
           <button class="swipe-btn swipe-btn-like" id="swipe-like" type="button" aria-label="行きたい">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-9.5-9C0 8 3 4 6.5 4c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 4 24 8 21.5 12 19 16.5 12 21 12 21z"/></svg>
+            <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7-4.5-9.5-9C0 8 3 4 6.5 4c2 0 3.5 1 5.5 3 2-2 3.5-3 5.5-3C21 4 24 8 21.5 12 19 16.5 12 21 12 21z"/></svg>
           </button>
         </div>
         <div class="swipe-empty" id="swipe-empty" hidden>
@@ -216,7 +254,7 @@
         <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
           <a href="business.html" class="btn">
             掲載のご案内を見る
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
           <a href="business.html#contact" class="btn btn-secondary">資料請求・相談</a>
         </div>
@@ -231,7 +269,7 @@
         <div class="footer-about">
           <div class="brand">
             <span class="brand-icon">
-              <svg width="52" height="52" viewBox="0 0 100 100">
+              <svg aria-hidden="true" width="52" height="52" viewBox="0 0 100 100">
                 <polygon points="50,12 88,80 12,80" fill="#F5C342" stroke="#3D2817" stroke-width="5" stroke-linejoin="round"/>
                 <polygon points="50,12 64,38 36,38" fill="#FFF9EE" stroke="#3D2817" stroke-width="3.5" stroke-linejoin="round"/>
                 <line x1="50" y1="12" x2="50" y2="4" stroke="#3D2817" stroke-width="3" stroke-linecap="round"/>

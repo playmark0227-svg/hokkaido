@@ -1,5 +1,6 @@
 // ========================================
-// Hokkaido Tourism Portal - Main JS
+// Hokkaido Tourism Portal — Spots page JS
+// (Used by spots.html only — filter + grid)
 // ========================================
 
 const $  = (sel, root = document) => root.querySelector(sel);
@@ -11,6 +12,15 @@ function escapeHtml(str) {
   }[c]));
 }
 
+// Debounce helper (search input)
+function debounce(fn, ms) {
+  let t;
+  return function (...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
+
 // ----- Render spot card -----
 function renderSpotCard(spot) {
   const region = REGIONS[spot.region];
@@ -20,7 +30,7 @@ function renderSpotCard(spot) {
 
   return `
     <article class="spot-card fade-in" data-region="${spot.region}" data-categories="${spot.categories.join(',')}" data-name="${escapeHtml(spot.name + ' ' + spot.nameEn + ' ' + spot.area)}">
-      <div class="spot-illustration">
+      <div class="spot-illustration" style="background:${spot.color}">
         <span class="spot-region-tag">${region.name}</span>
         <span class="spot-season-tag">${spot.bestSeason}</span>
         ${getIcon(spot.icon)}
@@ -36,59 +46,27 @@ function renderSpotCard(spot) {
   `;
 }
 
-// ----- Render region cards -----
-function renderRegionCards(container) {
-  if (!container) return;
-  const counts = {};
-  SPOTS.forEach(s => { counts[s.region] = (counts[s.region] || 0) + 1; });
+// Cache the grid container and card NodeList to avoid repeated DOM queries.
+let gridEl = null;
+let cardEls = [];
 
-  const descs = {
-    doo:    '札幌・小樽・富良野・美瑛など、<br>定番スポットが揃う中心エリア。',
-    donan:  '函館・松前など、<br>夜景と歴史ロマンが香るエリア。',
-    doto:   '知床・釧路・網走など、<br>大自然と神秘の湖が広がるエリア。',
-    dohoku: '旭山動物園・宗谷岬・利尻礼文など、<br>日本最北の絶景が並ぶエリア。'
-  };
-
-  const order = ['doo', 'donan', 'doto', 'dohoku'];
-  const num   = ['01', '02', '03', '04'];
-
-  container.innerHTML = order.map((key, i) => {
-    const r = REGIONS[key];
-    return `
-    <a href="spots.html?region=${key}" class="region-card fade-in" style="--card-color: ${r.color}">
-      <p class="region-num">AREA / ${num[i]}</p>
-      <div class="region-icon">${getIcon(r.icon)}</div>
-      <h3 class="region-name">${r.name}</h3>
-      <p class="region-name-en">${r.nameEn.toUpperCase()}</p>
-      <p class="region-desc">${descs[key]}</p>
-      <span class="region-count">${counts[key] || 0} Spots</span>
-    </a>`;
-  }).join('');
-}
-
-// ----- Render featured spots -----
-function renderFeatured(container, count = 6) {
-  if (!container) return;
-  const featuredIds = [
-    'sapporo-snow-festival', 'mt-hakodate', 'shiretoko',
-    'biei-blue-pond', 'asahiyama-zoo', 'otaru-canal'
-  ];
-  const featured = featuredIds
-    .map(id => SPOTS.find(s => s.id === id))
-    .filter(Boolean)
-    .slice(0, count);
-
-  container.innerHTML = featured.map(renderSpotCard).join('');
-}
-
-// ----- Render all spots with filters -----
 function renderAllSpots() {
-  const grid = $('#spots-grid');
-  if (!grid) return;
+  gridEl = $('#spots-grid');
+  if (!gridEl) return;
 
-  grid.innerHTML = SPOTS.map(renderSpotCard).join('');
-  updateFilterResult();
+  // Build all cards with DocumentFragment for a single layout pass.
+  const frag = document.createDocumentFragment();
+  const tmp = document.createElement('div');
+  tmp.innerHTML = SPOTS.map(renderSpotCard).join('');
+  while (tmp.firstChild) frag.appendChild(tmp.firstChild);
+  gridEl.innerHTML = '';
+  gridEl.appendChild(frag);
 
+  // Cache the rendered cards once (they don't change after initial render)
+  cardEls = $$('.spot-card', gridEl);
+  updateFilterResult(SPOTS.length);
+
+  // Filter chips
   $$('.chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const group = chip.dataset.group;
@@ -98,10 +76,11 @@ function renderAllSpots() {
     });
   });
 
+  // Debounced search
   const search = $('#search-input');
-  if (search) search.addEventListener('input', applyFilters);
+  if (search) search.addEventListener('input', debounce(applyFilters, 150));
 
-  // URL params
+  // Apply ?region=... from URL
   const params = new URLSearchParams(location.search);
   const r = params.get('region');
   if (r) {
@@ -120,23 +99,18 @@ function applyFilters() {
   const q = ($('#search-input')?.value || '').toLowerCase().trim();
 
   let visible = 0;
-  $$('.spot-card').forEach(card => {
+  for (const card of cardEls) {
     const region = card.dataset.region;
     const cats = card.dataset.categories.split(',');
     const name = card.dataset.name.toLowerCase();
 
-    const regionOk = activeRegion === 'all' || activeRegion === region;
-    const catOk    = activeCat === 'all' || cats.includes(activeCat);
-    const qOk      = !q || name.includes(q);
+    const ok = (activeRegion === 'all' || activeRegion === region) &&
+               (activeCat    === 'all' || cats.includes(activeCat)) &&
+               (!q || name.includes(q));
 
-    if (regionOk && catOk && qOk) {
-      card.style.display = '';
-      visible++;
-    } else {
-      card.style.display = 'none';
-    }
-  });
-
+    card.style.display = ok ? '' : 'none';
+    if (ok) visible++;
+  }
   updateFilterResult(visible);
 }
 
@@ -151,8 +125,4 @@ function updateFilterResult(visible) {
   if (noResults) noResults.style.display = visible === 0 ? '' : 'none';
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  renderRegionCards($('#region-cards'));
-  renderFeatured($('#featured-spots'));
-  renderAllSpots();
-});
+document.addEventListener('DOMContentLoaded', renderAllSpots);

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://playmark0227-svg.github.io/hokkaido/sitemap.xml

@@ -68,6 +68,76 @@ a { color: inherit; text-decoration: none; transition: all .2s; }
 button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
 ::selection { background: var(--c-yellow); color: var(--ink); }
 
+/* ============================================================
+   Accessibility — keyboard focus rings + reduced motion
+   ============================================================ */
+:focus { outline: none; }
+:focus-visible {
+  outline: 3px solid var(--c-yellow);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+/* Buttons / chips already have shadow → use a contrasting ring */
+.btn:focus-visible,
+.chip:focus-visible,
+.nav-cta:focus-visible,
+.swipe-btn:focus-visible,
+.chat-chip:focus-visible,
+.chat-confirm:focus-visible,
+.chat-send:focus-visible,
+.chat-skip:focus-visible,
+.nav-settings:focus-visible {
+  outline: 3px solid var(--c-yellow);
+  outline-offset: 4px;
+}
+.nav-links a:focus-visible {
+  outline: 3px solid var(--c-yellow);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--c-yellow);
+  outline-offset: 1px;
+}
+
+/* Skip-to-content link for screen readers and keyboard users */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0.5rem;
+  background: var(--c-red);
+  color: var(--paper);
+  padding: 0.6rem 1.2rem;
+  border-radius: 0 0 10px 10px;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 0.9rem;
+  z-index: 9999;
+  transition: top .2s;
+}
+.skip-link:focus { top: 0; }
+
+/* Honor user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .spot-pin.is-fav span,
+  .doodle { animation: none !important; }
+  .hero-illust,
+  .region-card,
+  .spot-card,
+  .price-card,
+  .process-step,
+  .faq-item,
+  .video-feature,
+  .stat { transform: none !important; }
+}
+
 /* SVG filter helper - apply crayon texture to illustrations */
 .crayon-svg {
   filter: url(#crayon-rough);
@@ -291,12 +361,6 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
   transform: skew(-3deg) rotate(-1deg);
   border-radius: 4px;
 }
-.hero-title .accent {
-  color: var(--c-red);
-  display: inline-block;
-  transform: rotate(-2deg);
-}
-
 .hero-sub {
   font-size: 1rem;
   color: var(--ink-light);
@@ -346,10 +410,6 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 .btn-secondary {
   background: var(--milk);
   color: var(--ink);
-}
-.btn-tertiary {
-  background: var(--c-blue);
-  color: var(--paper);
 }
 
 /* Hero illustration container (also used for cover video) */
@@ -1275,10 +1335,6 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
 }
 .fade-in { animation: fadeUp .7s ease-out backwards; }
 
-@keyframes wiggle {
-  0%, 100% { transform: rotate(-2deg); }
-  50% { transform: rotate(2deg); }
-}
 
 /* ===== Listing Tier Examples ===== */
 .example-tiers {
