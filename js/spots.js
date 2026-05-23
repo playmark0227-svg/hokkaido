@@ -104,6 +104,7 @@ const SPOTS = [
   },
   {
     id: 'otaru-canal',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.1932, 140.9947],
     name: '小樽運河',
     nameEn: 'Otaru Canal',
@@ -146,6 +147,7 @@ const SPOTS = [
   },
   {
     id: 'niseko',
+    videoUrl: 'assets/cover.mp4',
     coords: [42.8048, 140.6877],
     name: 'ニセコ',
     nameEn: 'Niseko',
@@ -160,6 +162,7 @@ const SPOTS = [
   },
   {
     id: 'lake-toya',
+    videoUrl: 'assets/cover.mp4',
     coords: [42.5803, 140.8431],
     name: '洞爺湖',
     nameEn: 'Lake Toya',
@@ -188,6 +191,7 @@ const SPOTS = [
   },
   {
     id: 'noboribetsu-onsen',
+    videoUrl: 'assets/cover.mp4',
     coords: [42.4905, 141.1454],
     name: '登別温泉',
     nameEn: 'Noboribetsu Onsen',
@@ -230,6 +234,7 @@ const SPOTS = [
   },
   {
     id: 'furano-lavender',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.4297, 142.4314],
     name: 'ファーム富田',
     nameEn: 'Farm Tomita',
@@ -258,6 +263,7 @@ const SPOTS = [
   },
   {
     id: 'biei-blue-pond',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.4955, 142.6157],
     name: '青い池',
     nameEn: 'Blue Pond (Aoi-Ike)',
@@ -286,6 +292,7 @@ const SPOTS = [
   },
   {
     id: 'shirahige-falls',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.5026, 142.6394],
     name: '白ひげの滝',
     nameEn: 'Shirahige Falls',
@@ -300,6 +307,7 @@ const SPOTS = [
   },
   {
     id: 'sapporo-snow-festival',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.0606, 141.3477],
     name: 'さっぽろ雪まつり',
     nameEn: 'Sapporo Snow Festival',
@@ -316,6 +324,7 @@ const SPOTS = [
   // ===== 道南 (Donan) =====
   {
     id: 'mt-hakodate',
+    videoUrl: 'assets/cover.mp4',
     coords: [41.7596, 140.7036],
     name: '函館山',
     nameEn: 'Mt. Hakodate',
@@ -514,6 +523,7 @@ const SPOTS = [
   },
   {
     id: 'shiretoko',
+    videoUrl: 'assets/cover.mp4',
     coords: [44.0772, 145.0386],
     name: '知床',
     nameEn: 'Shiretoko',
@@ -670,6 +680,7 @@ const SPOTS = [
   // ===== 道北 (Dohoku) =====
   {
     id: 'asahiyama-zoo',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.7708, 142.4781],
     name: '旭山動物園',
     nameEn: 'Asahiyama Zoo',
@@ -894,6 +905,7 @@ const SPOTS = [
   },
   {
     id: 'shakotan',
+    videoUrl: 'assets/cover.mp4',
     coords: [43.3081, 140.5328],
     name: '積丹半島',
     nameEn: 'Shakotan Peninsula',

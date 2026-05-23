@@ -1,6 +1,6 @@
 // ========================================================
-// Hokkaido Travel Note — App with Claude API
-// Map + AI Chat (Claude) + Tinder-style Swipe + Itinerary
+// Hokkaido Travel Note — Chat-first AI Planner
+// Claude API + Inline Itinerary Cards + Side Map
 // ========================================================
 
 const $  = (sel, root = document) => root.querySelector(sel);
@@ -19,30 +19,50 @@ const REGION_COLORS = {
   dohoku: '#4A8DC0',
 };
 
-// O(1) lookup map by spot ID
 const SPOT_BY_ID = Object.fromEntries(SPOTS.map(s => [s.id, s]));
 
-// Magic numbers extracted to named constants
-const SWIPE_THRESHOLD_PX = 100;
-const SWIPE_FLY_PX = 1200;
-const SWIPE_ROTATE_DIVISOR = 18;
+const STORAGE_KEY = 'anthropic_api_key';
+const API_URL = 'https://api.anthropic.com/v1/messages';
 const MAX_TOOL_RECURSION = 5;
-const API_TIMEOUT_MS = 60_000;
-const SEARCH_DEBOUNCE_MS = 150;
+const API_TIMEOUT_MS = 90_000;
 
 // ─────────────────────────────────────────────
-// MAP (Leaflet)
+// State
+// ─────────────────────────────────────────────
+const state = {
+  apiMessages: [],
+  isStreaming: false,
+  highlightedSpotIds: new Set(),
+};
+
+// ─────────────────────────────────────────────
+// API key (config.js > localStorage > memory)
+// ─────────────────────────────────────────────
+let memoryKey = '';
+function safeStorageGet(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
+function safeStorageSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (_) { return false; } }
+function safeStorageRemove(k) { try { localStorage.removeItem(k); } catch (_) {} }
+function getApiKey() {
+  if (typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim()) {
+    return window.ANTHROPIC_API_KEY.trim();
+  }
+  return safeStorageGet(STORAGE_KEY) || memoryKey || '';
+}
+function setApiKey(k) { memoryKey = k; return safeStorageSet(STORAGE_KEY, k); }
+function clearApiKey() { memoryKey = ''; safeStorageRemove(STORAGE_KEY); }
+
+// ─────────────────────────────────────────────
+// Map (Leaflet)
 // ─────────────────────────────────────────────
 let map, markerLayer;
 const markerById = {};
 
 function initMap() {
   if (typeof L === 'undefined') { setTimeout(initMap, 100); return; }
-
   map = L.map('map', {
     center: [43.4, 142.7],
-    zoom: 6,
-    scrollWheelZoom: false,
+    zoom: 5,
+    scrollWheelZoom: true,
     zoomControl: true,
   });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -50,9 +70,7 @@ function initMap() {
     attribution: '© OpenStreetMap'
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
-  SPOTS.forEach(spot => addMarker(spot));
-  map.on('click focus', () => map.scrollWheelZoom.enable());
-  map.on('mouseout', () => map.scrollWheelZoom.disable());
+  SPOTS.forEach(addMarker);
 }
 
 function addMarker(spot) {
@@ -76,75 +94,140 @@ function addMarker(spot) {
   markerById[spot.id] = m;
 }
 
-function refreshFavMarkers() {
+function refreshHighlights() {
   Object.entries(markerById).forEach(([id, marker]) => {
     const spot = SPOT_BY_ID[id];
-    if (!spot) return; // defensive: skip if data drift
-    const isFav = state.likes.includes(id);
-    const color = isFav ? '#E84A38' : (REGION_COLORS[spot.region] || '#3D2817');
+    if (!spot) return;
+    const isHL = state.highlightedSpotIds.has(id);
+    const color = isHL ? '#E84A38' : (REGION_COLORS[spot.region] || '#3D2817');
     const icon = L.divIcon({
-      className: 'spot-pin' + (isFav ? ' is-fav' : ''),
+      className: 'spot-pin' + (isHL ? ' is-fav' : ''),
       html: `<span style="background:${color}"></span>`,
-      iconSize: isFav ? [28, 28] : [22, 22],
-      iconAnchor: isFav ? [14, 14] : [11, 11],
+      iconSize: isHL ? [28, 28] : [22, 22],
+      iconAnchor: isHL ? [14, 14] : [11, 11],
     });
     marker.setIcon(icon);
   });
 }
 
-// ─────────────────────────────────────────────
-// API key management + State
-// ─────────────────────────────────────────────
-const STORAGE_KEY = 'anthropic_api_key';
-const API_URL = 'https://api.anthropic.com/v1/messages';
-
-const state = {
-  apiMessages: [],
-  isStreaming: false,
-  candidates: [],
-  cardIndex: 0,
-  likes: [],
-  skips: [],
-  history: [],
-};
-
-// localStorage may throw in private browsing / disabled storage — guard every access.
-// Keep an in-memory fallback so the current tab still works.
-let memoryKey = '';
-function safeStorageGet(key) {
-  try { return localStorage.getItem(key); } catch (_) { return null; }
-}
-function safeStorageSet(key, value) {
-  try { localStorage.setItem(key, value); return true; } catch (_) { return false; }
-}
-function safeStorageRemove(key) {
-  try { localStorage.removeItem(key); } catch (_) { /* ignore */ }
-}
-function getApiKey() {
-  if (typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim()) {
-    return window.ANTHROPIC_API_KEY.trim();
+function flyToSpots(ids) {
+  if (!map) return;
+  const coords = ids.map(id => SPOT_BY_ID[id]?.coords).filter(Boolean);
+  if (!coords.length) return;
+  if (coords.length === 1) {
+    map.flyTo(coords[0], 10, { duration: 0.8 });
+  } else {
+    const bounds = L.latLngBounds(coords);
+    if (bounds.isValid()) map.flyToBounds(bounds, { padding: [40, 40], duration: 0.8 });
   }
-  return safeStorageGet(STORAGE_KEY) || memoryKey || '';
-}
-function setApiKey(k) {
-  memoryKey = k;
-  return safeStorageSet(STORAGE_KEY, k);
-}
-function clearApiKey() {
-  memoryKey = '';
-  safeStorageRemove(STORAGE_KEY);
-}
-function hasConfiguredKey() {
-  return typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim().length > 0;
 }
 
-// Direct fetch to Anthropic API with streaming SSE parsing.
-// No SDK dependency — works on any modern browser.
+// ─────────────────────────────────────────────
+// Claude API: System prompt + Tool
+// ─────────────────────────────────────────────
+const SPOTS_FOR_AI = SPOTS.map(s => ({
+  id: s.id,
+  name: s.name,
+  region: s.region,
+  area: s.area,
+  categories: s.categories,
+  bestSeason: s.bestSeason,
+  description: s.description,
+  accessTime: s.accessTime,
+  hasVideo: !!s.videoUrl,
+}));
+
+const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナーです。ユーザーと対話して旅程を組み立てます。
+
+【話し方】
+- 親しみやすいが落ち着いたトーン。絵文字や「♪」は避ける
+- 1〜2文で簡潔に。長い前置きはしない
+- 質問は一度に1〜2個まで
+
+【ヒアリング項目 (柔軟に)】
+- 期間・日程
+- 興味のあるテーマ(自然/温泉/グルメ/街/文化/季節)
+- マストで行きたい場所
+- 同行者・出発地・予算 (任意)
+
+【ツール使用】
+- 必要な情報が揃ったら propose_itinerary ツールを呼んで旅程を提案する
+- 各スポットには日付・時間帯・コメントを添える
+- 日帰り: 3-5スポット / 1泊: 5-8 / 2泊: 8-12 / 3泊+: 10-16
+- ユーザーが「もう少し違う案」「○○を入れて」と言えば、再度ツールを呼んで修正版を提案
+- スポットIDは渡されたデータの id を必ず使う
+
+【スポット選定の指針】
+- ユーザーの条件に合致するものを優先
+- エリア・テーマのバランス、移動の現実性を考慮
+- 「hasVideo: true」のスポットも、適合度が高いなら積極的に含めてよい (条件には合わせる)
+- 同じスポットは1つの旅程内で重複させない
+
+【ツール呼び出し後】
+- ツール呼び出し後は短く一言「いかがでしょうか?」「気になる箇所はありますか?」程度で済ませる
+- 旅程の説明をテキストで繰り返さない (UIに表示されるので不要)
+`;
+
+function buildSystem() {
+  return [
+    { type: 'text', text: SYSTEM_INSTRUCTIONS },
+    {
+      type: 'text',
+      text: `# 利用可能な北海道観光スポット (64件)\n${JSON.stringify(SPOTS_FOR_AI)}`,
+      cache_control: { type: 'ephemeral' },
+    },
+  ];
+}
+
+const TOOLS = [{
+  name: 'propose_itinerary',
+  description: '対話で集めた条件に基づき、北海道の旅程を提案する。日付ごとにスポットを並べてユーザーに表示する。再提案する場合も同じツールを呼ぶ。',
+  input_schema: {
+    type: 'object',
+    properties: {
+      title: {
+        type: 'string',
+        description: '旅程のタイトル。例: 「札幌・小樽 2泊3日 温泉とグルメ」'
+      },
+      summary: {
+        type: 'string',
+        description: '旅程全体のテーマや見どころを1〜2文で。'
+      },
+      days: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            day: { type: 'number', description: '日数 (1始まり)' },
+            theme: { type: 'string', description: 'その日のテーマ (例: 札幌街歩き)' },
+            spots: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  spot_id: { type: 'string', description: '提供データの id を必ず使う' },
+                  time: { type: 'string', description: '午前 / 昼 / 午後 / 夕方 / 夜 など' },
+                  comment: { type: 'string', description: 'そのスポットの楽しみ方や見どころを1〜2文で。AIプランナーらしい所感。' },
+                },
+                required: ['spot_id', 'comment']
+              }
+            }
+          },
+          required: ['day', 'spots']
+        }
+      }
+    },
+    required: ['title', 'days']
+  }
+}];
+
+// ─────────────────────────────────────────────
+// Direct fetch to Anthropic API with SSE parse
+// ─────────────────────────────────────────────
 async function callClaudeStream({ system, tools, messages, onTextDelta }) {
   const apiKey = getApiKey();
   if (!apiKey) throw new Error('API キーが設定されていません');
 
-  // Abort after API_TIMEOUT_MS (default 60s) to avoid hanging requests.
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
@@ -160,7 +243,7 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
       },
       body: JSON.stringify({
         model: 'claude-opus-4-7',
-        max_tokens: 2500,
+        max_tokens: 3000,
         system,
         tools,
         messages,
@@ -177,7 +260,6 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
     }
     throw err;
   }
-  // Reset timer once headers arrive; keep guard for the streaming body too.
   clearTimeout(timeoutId);
 
   if (!response.ok) {
@@ -187,56 +269,40 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
       const errData = await response.json();
       if (errData?.error?.message) errMsg = errData.error.message;
       if (errData?.error?.type) errType = errData.error.type;
-    } catch (_) {
-      // JSON parse failed - keep generic message
-    }
+    } catch (_) {}
     const e = new Error(errMsg);
     e.status = response.status;
     if (errType) e.type = errType;
     throw e;
   }
-  if (!response.body) {
-    throw new Error('レスポンスにストリームがありません (response.body is null)');
-  }
+  if (!response.body) throw new Error('レスポンスにストリームがありません');
 
-  // Parse SSE stream
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-
-  // Accumulate the final message structure
-  const contentBlocks = [];        // [{type, text?, name?, id?, input?}, ...]
-  const toolInputBuffers = {};     // index → partial json string
+  const contentBlocks = [];
+  const toolInputBuffers = {};
   let stopReason = null;
-  let usage = null;
 
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-
-    // Each SSE event is separated by \n\n
     let nlnl;
     while ((nlnl = buffer.indexOf('\n\n')) !== -1) {
       const chunk = buffer.slice(0, nlnl);
       buffer = buffer.slice(nlnl + 2);
-
-      // Parse "data: {...}" lines
-      const lines = chunk.split('\n');
-      for (const line of lines) {
+      for (const line of chunk.split('\n')) {
         if (!line.startsWith('data:')) continue;
         const data = line.slice(5).trim();
         if (!data || data === '[DONE]') continue;
         let event;
         try { event = JSON.parse(data); } catch { continue; }
-
         if (event.type === 'content_block_start') {
           const idx = event.index;
           const block = { ...event.content_block };
           contentBlocks[idx] = block;
-          if (block.type === 'tool_use') {
-            toolInputBuffers[idx] = '';
-          }
+          if (block.type === 'tool_use') toolInputBuffers[idx] = '';
         } else if (event.type === 'content_block_delta') {
           const idx = event.index;
           const block = contentBlocks[idx];
@@ -255,9 +321,6 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
           }
         } else if (event.type === 'message_delta') {
           if (event.delta?.stop_reason) stopReason = event.delta.stop_reason;
-          if (event.usage) usage = event.usage;
-        } else if (event.type === 'message_stop') {
-          // done
         } else if (event.type === 'error') {
           const err = new Error(event.error?.message || 'Stream error');
           err.type = event.error?.type;
@@ -266,225 +329,207 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
       }
     }
   }
-
-  return {
-    content: contentBlocks.filter(Boolean),
-    stop_reason: stopReason,
-    usage,
-  };
+  return { content: contentBlocks.filter(Boolean), stop_reason: stopReason };
 }
 
 // ─────────────────────────────────────────────
-// Claude API: System prompt + Tools
+// Chat UI
 // ─────────────────────────────────────────────
-const SPOTS_FOR_AI = SPOTS.map(s => ({
-  id: s.id,
-  name: s.name,
-  region: s.region,
-  area: s.area,
-  categories: s.categories,
-  bestSeason: s.bestSeason,
-  description: s.description,
-}));
-
-const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナーです。ユーザーと自然な会話で旅の希望をヒアリングし、北海道の観光スポット情報から最適な場所を提案してください。
-
-【トーン】
-- 親しみやすく、ただし大人向けの落ち着いたトーン
-- 絵文字や「♪」「！」の多用は避ける
-- 1〜2文で簡潔に。長文の説明は避ける
-
-【聞き出す情報】
-質問は一度に1〜2個まで、テンポよく対話してください。最低でも3つの条件を把握したら suggest_spots ツールを呼びます。
-1. 旅行の日程・期間
-2. おおよその予算 (任意)
-3. 興味のあるテーマ(自然/温泉/グルメ/街/文化/季節 など)
-4. マストで行きたい場所 (任意)
-5. 同行者・出発地 (任意)
-
-【スポット選定の指針】
-- ユーザーの条件に最も合う 8〜16 件を選ぶ
-- 日帰り 6-8件、1泊 8-12件、2泊 12-16件、3泊+ 14-18件
-- エリアと季節のバランスを考慮
-- 同じエリアばかりにならないよう調整 (移動が現実的な範囲で)
-- マスト箇所は必ず含める
-- カテゴリの希望に沿いつつ、隠れた名所も1〜2件入れて良い
-
-【ツール使用】
-- 情報が揃ったら suggest_spots を呼ぶ
-- ユーザーが「もっと候補が欲しい」「条件を変えたい」と言えば、別の組み合わせで再度呼んでよい
-- 各ツール呼び出しに 1〜2文の選定理由(summary)を添える
-
-【出力】
-- 親しみやすく簡潔に
-- ユーザーが言ったことを軽く確認しながら進める
-`;
-
-function buildSystem() {
-  return [
-    { type: 'text', text: SYSTEM_INSTRUCTIONS },
-    {
-      type: 'text',
-      text: `# 利用可能な北海道観光スポット (64件)\n以下のスポットの中から提案してください。\n\n${JSON.stringify(SPOTS_FOR_AI)}`,
-      cache_control: { type: 'ephemeral' },
-    },
-  ];
+function ensureChatThread() {
+  $('#chat-welcome')?.remove();
 }
 
-const TOOLS = [{
-  name: 'suggest_spots',
-  description: '会話で集めた条件に基づき、おすすめの観光スポットIDを提案する。ユーザーが満足するまで何度でも呼べる。8〜16件をリストで返す。',
-  input_schema: {
-    type: 'object',
-    properties: {
-      spot_ids: {
-        type: 'array',
-        items: { type: 'string' },
-        description: '提案するスポットIDのリスト(8〜16件)。提供されたスポットデータの id を使用。',
-      },
-      summary: {
-        type: 'string',
-        description: '提案の根拠を1〜2文で。例: 「札幌〜小樽の冬旅と温泉重視で、グルメスポットも含めました。」',
-      },
-    },
-    required: ['spot_ids', 'summary'],
-  },
-}];
-
-// ─────────────────────────────────────────────
-// Chat UI helpers
-// ─────────────────────────────────────────────
-function addMessage(text, type = 'bot') {
-  const wrap = $('#chat-window');
-  const bubble = document.createElement('div');
-  bubble.className = `chat-msg chat-msg-${type}`;
-  bubble.innerHTML = type === 'bot'
-    ? `<span class="chat-avatar">AI</span><div class="chat-bubble">${text}</div>`
-    : `<div class="chat-bubble">${text}</div>`;
-  wrap.appendChild(bubble);
-  wrap.scrollTop = wrap.scrollHeight;
-  return bubble;
+function addUserMessage(text) {
+  ensureChatThread();
+  const thread = $('#chat-thread');
+  const el = document.createElement('div');
+  el.className = 'chat-msg chat-msg-user';
+  el.innerHTML = `<div class="chat-bubble">${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+  thread.appendChild(el);
+  thread.scrollTop = thread.scrollHeight;
 }
 
-function showTyping() {
-  const wrap = $('#chat-window');
-  const bubble = document.createElement('div');
-  bubble.className = 'chat-msg chat-msg-bot chat-typing';
-  bubble.innerHTML = `<span class="chat-avatar">AI</span><div class="chat-bubble"><span></span><span></span><span></span></div>`;
-  wrap.appendChild(bubble);
-  wrap.scrollTop = wrap.scrollHeight;
-  return bubble;
-}
-
-function renderFreeTextInput(autoFocus = true) {
-  const box = $('#chat-input');
-  box.innerHTML = `
-    <div class="chat-text-input">
-      <input type="text" id="user-text-input" placeholder="返事を入力..." autocomplete="off" />
-      <button type="button" class="chat-send" id="user-text-send">送信</button>
-    </div>`;
-  const input = $('#user-text-input');
-  const send = $('#user-text-send');
-  const handle = () => {
-    const text = input.value.trim();
-    if (!text || state.isStreaming) return;
-    box.innerHTML = '';
-    sendUserMessage(text);
-  };
-  send.addEventListener('click', handle);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); handle(); }
-  });
-  if (autoFocus) setTimeout(() => input.focus(), 200);
-}
-
-function renderApiKeyPrompt() {
-  const wrap = $('#chat-window');
-  wrap.innerHTML = '';
-  addMessage(
-    'AI 旅プランを使うには、Claude API キーの設定が必要です。<br>右上の <strong>設定アイコン</strong> から API キーを登録してください。',
-    'bot'
-  );
-  const box = $('#chat-input');
-  box.innerHTML = `
-    <button type="button" class="chat-confirm" id="open-settings-from-chat">API キーを設定する</button>
+function addBotMessage(initialText = '') {
+  ensureChatThread();
+  const thread = $('#chat-thread');
+  const el = document.createElement('div');
+  el.className = 'chat-msg chat-msg-bot';
+  el.innerHTML = `
+    <span class="chat-avatar">AI</span>
+    <div class="chat-bubble"></div>
   `;
-  $('#open-settings-from-chat')?.addEventListener('click', openSettingsModal);
+  if (initialText) el.querySelector('.chat-bubble').innerHTML = escapeHtml(initialText).replace(/\n/g, '<br>');
+  thread.appendChild(el);
+  thread.scrollTop = thread.scrollHeight;
+  return el;
+}
+
+function addTypingIndicator() {
+  ensureChatThread();
+  const thread = $('#chat-thread');
+  const el = document.createElement('div');
+  el.className = 'chat-msg chat-msg-bot chat-typing';
+  el.innerHTML = `<span class="chat-avatar">AI</span><div class="chat-bubble"><span></span><span></span><span></span></div>`;
+  thread.appendChild(el);
+  thread.scrollTop = thread.scrollHeight;
+  return el;
+}
+
+function addErrorMessage(message, advice = '') {
+  ensureChatThread();
+  const thread = $('#chat-thread');
+  const el = document.createElement('div');
+  el.className = 'chat-msg chat-msg-error';
+  el.innerHTML = `
+    <div class="chat-bubble">
+      <strong>⚠️ エラーが発生しました</strong>
+      <p><code>${escapeHtml(message)}</code></p>
+      ${advice ? `<p>${escapeHtml(advice)}</p>` : ''}
+    </div>
+  `;
+  thread.appendChild(el);
+  thread.scrollTop = thread.scrollHeight;
 }
 
 // ─────────────────────────────────────────────
-// Conversation with Claude
+// Render an itinerary inline in the chat
 // ─────────────────────────────────────────────
-async function startAiConversation(initialText) {
-  // Reset
-  Object.assign(state, {
-    apiMessages: [],
-    isStreaming: false,
-    candidates: [],
-    cardIndex: 0,
-    likes: [],
-    skips: [],
-    history: [],
+function renderItinerary(input) {
+  const { title, summary, days } = input;
+  const validDays = (days || []).filter(d => d.spots?.length);
+  if (!validDays.length) return null;
+
+  // Collect all spot ids for map highlighting
+  const allIds = [];
+  validDays.forEach(d => d.spots.forEach(s => { if (s.spot_id) allIds.push(s.spot_id); }));
+
+  state.highlightedSpotIds = new Set(allIds);
+  refreshHighlights();
+  flyToSpots(allIds);
+
+  const thread = $('#chat-thread');
+  const wrapper = document.createElement('div');
+  wrapper.className = 'itinerary-card';
+
+  let html = '';
+  if (title) html += `<h2 class="itinerary-title">${escapeHtml(title)}</h2>`;
+  if (summary) html += `<p class="itinerary-summary">${escapeHtml(summary)}</p>`;
+
+  validDays.forEach(day => {
+    html += `<div class="itinerary-day">`;
+    html += `<div class="itinerary-day-head">`;
+    html += `<span class="itinerary-day-num">DAY ${day.day || '?'}</span>`;
+    if (day.theme) html += `<span class="itinerary-day-theme">${escapeHtml(day.theme)}</span>`;
+    html += `</div>`;
+    html += `<div class="itinerary-spots">`;
+    day.spots.forEach(s => {
+      const spot = SPOT_BY_ID[s.spot_id];
+      if (!spot) return;
+      html += renderSpotCard(spot, s);
+    });
+    html += `</div></div>`;
   });
-  $('#chat-window').innerHTML = '';
-  $('#chat-input').innerHTML = '';
-  $('#swipe-section').hidden = true;
-  $('#itinerary-section').hidden = true;
-  $('#swipe-empty').hidden = true;
-  refreshFavMarkers();
 
-  if (!getApiKey()) {
-    renderApiKeyPrompt();
-    return;
-  }
+  wrapper.innerHTML = html;
+  thread.appendChild(wrapper);
+  thread.scrollTop = thread.scrollHeight;
 
-  if (initialText && initialText.trim()) {
-    await sendUserMessage(initialText.trim());
-  } else {
-    // Greeting opener — bot turn first, no user message
-    await sendUserMessage(
-      'こんにちは。北海道の旅プランを相談したいです。',
-      { hideUserBubble: false }
-    );
-  }
+  // Wire up "show on map" buttons in the itinerary
+  wrapper.querySelectorAll('[data-spot-pan]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.spotPan;
+      const spot = SPOT_BY_ID[id];
+      if (spot && spot.coords && map) {
+        map.flyTo(spot.coords, 12, { duration: 0.6 });
+        markerById[id]?.openPopup();
+      }
+    });
+  });
+
+  return wrapper;
 }
 
-async function sendUserMessage(text, options = {}) {
+function renderSpotCard(spot, suggestion = {}) {
+  const region = REGIONS[spot.region]?.name || '';
+  const hasVideo = !!spot.videoUrl;
+  const timeBadge = suggestion.time
+    ? `<span class="spot-time">${escapeHtml(suggestion.time)}</span>`
+    : '';
+
+  const mediaHTML = hasVideo
+    ? `<div class="spot-media spot-media-video">
+         <video autoplay loop muted playsinline preload="metadata"
+                poster="assets/cover-poster.jpg"
+                aria-label="${escapeHtml(spot.name)} の紹介映像">
+           <source src="${spot.videoUrl}" type="video/mp4">
+         </video>
+         <span class="spot-media-badge">掲載パートナー</span>
+       </div>`
+    : `<div class="spot-media spot-media-icon" style="background:${spot.color}">
+         ${getIcon(spot.icon)}
+       </div>`;
+
+  return `
+    <article class="spot-listing ${hasVideo ? 'has-video' : 'no-video'}" data-spot="${spot.id}">
+      ${mediaHTML}
+      <div class="spot-listing-body">
+        <div class="spot-listing-head">
+          <h3 class="spot-listing-name">${escapeHtml(spot.name)}</h3>
+          ${timeBadge}
+        </div>
+        <div class="spot-listing-meta">
+          <span>📍 ${escapeHtml(region)} · ${escapeHtml(spot.area)}</span>
+          <span>· ${escapeHtml(spot.bestSeason)}</span>
+        </div>
+        ${suggestion.comment
+          ? `<p class="spot-listing-comment">💡 ${escapeHtml(suggestion.comment)}</p>`
+          : ''}
+        <p class="spot-listing-desc">${escapeHtml(spot.description)}</p>
+        <div class="spot-listing-foot">
+          <small>${escapeHtml(spot.accessTime || '')}</small>
+          <button type="button" class="spot-pan-btn" data-spot-pan="${spot.id}">
+            マップで見る →
+          </button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+// ─────────────────────────────────────────────
+// Conversation loop
+// ─────────────────────────────────────────────
+async function sendUserMessage(text) {
   if (state.isStreaming) return;
   state.isStreaming = true;
+  setInputDisabled(true);
 
-  if (!options.hideUserBubble) {
-    addMessage(escapeHtml(text), 'user');
-  }
+  addUserMessage(text);
   state.apiMessages.push({ role: 'user', content: text });
-  $('#chat-input').innerHTML = '';
 
-  await runAssistantTurn();
+  await runAssistantTurn(0);
 
   state.isStreaming = false;
+  setInputDisabled(false);
+  $('#chat-input')?.focus();
 }
 
-async function runAssistantTurn(depth = 0) {
+async function runAssistantTurn(depth) {
   if (depth >= MAX_TOOL_RECURSION) {
-    addMessage(
-      `⚠️ ツール呼び出しが ${MAX_TOOL_RECURSION} 回連続したため、念のため停止しました。もう一度お話を続けてください。`,
-      'bot'
-    );
-    renderFreeTextInput();
+    addBotMessage(`ツール呼び出しが ${MAX_TOOL_RECURSION} 回連続したため一旦停止しました。再度お声がけください。`);
     return;
   }
 
-  let typing = showTyping();
-  let bubble = null;
+  let typing = addTypingIndicator();
+  let textEl = null;
   let accumulated = '';
 
-  const handleDelta = (text) => {
+  const onDelta = (delta) => {
     if (typing) { typing.remove(); typing = null; }
-    if (!bubble) bubble = addMessage('', 'bot');
-    accumulated += text;
-    bubble.querySelector('.chat-bubble').innerHTML = escapeHtml(accumulated).replace(/\n/g, '<br>');
-    const w = $('#chat-window');
-    w.scrollTop = w.scrollHeight;
+    if (!textEl) textEl = addBotMessage('');
+    accumulated += delta;
+    textEl.querySelector('.chat-bubble').innerHTML = escapeHtml(accumulated).replace(/\n/g, '<br>');
+    $('#chat-thread').scrollTop = $('#chat-thread').scrollHeight;
   };
 
   try {
@@ -492,270 +537,84 @@ async function runAssistantTurn(depth = 0) {
       system: buildSystem(),
       tools: TOOLS,
       messages: state.apiMessages,
-      onTextDelta: handleDelta,
+      onTextDelta: onDelta,
     });
 
     if (typing) { typing.remove(); typing = null; }
     state.apiMessages.push({ role: 'assistant', content: finalMessage.content });
 
+    // Render any tool calls
     const toolUse = finalMessage.content.find(b => b.type === 'tool_use');
-    if (toolUse && toolUse.name === 'suggest_spots') {
-      const ok = handleSuggestSpots(toolUse.input || {});
+    if (toolUse && toolUse.name === 'propose_itinerary') {
+      const rendered = renderItinerary(toolUse.input || {});
+      const okText = rendered
+        ? `旅程(${(toolUse.input?.days || []).reduce((n, d) => n + (d.spots?.length || 0), 0)}スポット)を表示しました。ユーザーの反応を待ってください。`
+        : 'スポットIDが認識できなかったため、表示できませんでした。再提案してください。';
       state.apiMessages.push({
         role: 'user',
         content: [{
           type: 'tool_result',
           tool_use_id: toolUse.id,
-          content: ok
-            ? `スポット候補(${state.candidates.length}件)をユーザーに表示しました。次は会話を続けて、ユーザーがもっと候補が欲しいか / 条件を変えたいかなどあれば対応してください。`
-            : 'スポットIDの一部が無効でした。再度提案してください。'
+          content: okText
         }]
       });
       await runAssistantTurn(depth + 1);
       return;
     }
-
-    if (finalMessage.stop_reason === 'end_turn' || finalMessage.stop_reason === 'max_tokens') {
-      renderFreeTextInput();
-    }
   } catch (err) {
     if (typing) typing.remove();
     console.error('Claude API error:', err);
+    // Roll back trailing user text message
+    const last = state.apiMessages[state.apiMessages.length - 1];
+    if (last && last.role === 'user' && typeof last.content === 'string') {
+      state.apiMessages.pop();
+    }
     handleApiError(err);
   }
 }
 
-function handleSuggestSpots(input) {
-  const ids = (input.spot_ids || []).filter(Boolean);
-  const spots = ids.map(id => SPOTS.find(s => s.id === id)).filter(Boolean);
-  if (spots.length < 4) return false;
-
-  state.candidates = spots;
-  state.cardIndex = 0;
-  state.likes = [];
-  state.skips = [];
-  state.history = [];
-  refreshFavMarkers();
-  revealSwipe();
-  return true;
-}
-
 function handleApiError(err) {
-  // Roll back the last user-text message so a retry doesn't pile up duplicates.
-  // We only pop simple text messages — tool_result entries stay so we don't
-  // orphan an assistant tool_use.
-  const last = state.apiMessages[state.apiMessages.length - 1];
-  if (last && last.role === 'user' && typeof last.content === 'string') {
-    state.apiMessages.pop();
-  }
-
-  const message = err?.message || String(err);
+  const msg = err?.message || String(err);
   let advice = '';
-  if (err?.status === 401) advice = 'API キーが正しくないか、無効化されている可能性があります。右上の歯車アイコンから再入力してください。';
-  else if (err?.status === 403) advice = 'このキーには利用権限がないようです。Anthropic Console でキーの状態を確認してください。';
-  else if (err?.status === 429) advice = 'レート制限または予算上限に達しました。少し時間を空けてから再試行してください。';
-  else if (err?.status === 400) advice = 'リクエストが不正です (パラメータエラー)。コンソールログ (F12) で詳細をご確認ください。';
-  else if (err?.status >= 500) advice = 'Anthropic 側で一時的なエラーが発生しているようです。しばらくしてから再試行してください。';
-  else if (message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network')) advice = 'ネットワーク接続をご確認ください。';
-  else if (message.toLowerCase().includes('cors')) advice = 'CORSエラー。ブラウザの拡張機能や広告ブロッカーが原因の可能性があります。';
-
-  addMessage(
-    `⚠️ エラーが発生しました：<br><code style="font-size:0.85em">${escapeHtml(message)}</code>${advice ? '<br>' + advice : ''}`,
-    'bot'
-  );
-  renderFreeTextInput(false);
+  if (err?.status === 401) advice = 'APIキーが正しくないか、無効化されている可能性があります。右上の歯車から再入力してください。';
+  else if (err?.status === 403) advice = 'このキーには利用権限がありません。Anthropic Consoleでキーを確認してください。';
+  else if (err?.status === 429) advice = 'レート制限/予算上限に達しました。少し時間を空けて再試行してください。';
+  else if (err?.status === 400) advice = 'リクエストパラメータが不正です。開発者ツールのコンソールをご確認ください。';
+  else if (err?.status >= 500) advice = 'Anthropic側で一時的なエラーが発生しています。しばらくして再試行してください。';
+  else if (msg.toLowerCase().includes('network') || msg.toLowerCase().includes('fetch')) advice = 'ネットワーク接続を確認してください。';
+  addErrorMessage(msg, advice);
 }
 
 // ─────────────────────────────────────────────
-// Swipe (existing functionality)
+// Input handling
 // ─────────────────────────────────────────────
-function revealSwipe() {
-  const section = $('#swipe-section');
-  section.hidden = false;
-  buildSwipeDeck();
-  setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400);
+function setInputDisabled(disabled) {
+  const input = $('#chat-input');
+  const btn = $('#chat-send');
+  if (input) input.disabled = disabled;
+  if (btn) btn.disabled = disabled;
 }
 
-function buildSwipeDeck() {
-  const deck = $('#swipe-deck');
-  deck.innerHTML = '';
-  state.candidates.forEach((spot, i) => {
-    deck.appendChild(buildSwipeCard(spot, i));
-  });
-  updateSwipeProgress();
-  attachTopCard();
-  $('#swipe-empty').hidden = true;
+function autosizeTextarea() {
+  const ta = $('#chat-input');
+  if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
 }
 
-function buildSwipeCard(spot, idx) {
-  const card = document.createElement('article');
-  card.className = 'swipe-card';
-  card.dataset.spotId = spot.id;
-  card.dataset.index = idx;
-
-  const region = REGIONS[spot.region];
-  const cats = spot.categories
-    .map(c => `<span class="spot-tag">${CATEGORIES[c].emoji} ${CATEGORIES[c].name}</span>`)
-    .join('');
-
-  card.innerHTML = `
-    <div class="swipe-card-illust" style="background:${spot.color}">
-      <span class="spot-region-tag">${region.name} · ${escapeHtml(spot.area)}</span>
-      <span class="spot-season-tag">${spot.bestSeason}</span>
-      ${getIcon(spot.icon)}
-      <span class="swipe-stamp swipe-stamp-like">行きたい！</span>
-      <span class="swipe-stamp swipe-stamp-skip">スキップ</span>
-    </div>
-    <div class="swipe-card-body">
-      <h3>${escapeHtml(spot.name)}</h3>
-      <p class="swipe-card-en">${escapeHtml(spot.nameEn)}</p>
-      <p class="swipe-card-desc">${escapeHtml(spot.description)}</p>
-      <div class="swipe-card-meta">${cats}</div>
-      <p class="swipe-card-access">📍 ${escapeHtml(spot.accessTime)}</p>
-    </div>`;
-  return card;
-}
-
-let activeCard = null;
-let dragData = null;
-
-function getTopCard() {
-  const cards = $$('.swipe-card', $('#swipe-deck')).filter(c => !c.dataset.gone);
-  return cards[cards.length - 1] || null;
-}
-
-function attachTopCard() {
-  const card = getTopCard();
-  if (!card) { showSwipeEmpty(); return; }
-  if (activeCard === card) return;
-  activeCard = card;
-  card.addEventListener('pointerdown', onPointerDown);
-}
-
-function onPointerDown(e) {
-  if (e.button && e.button !== 0) return;
-  const card = e.currentTarget;
-  card.setPointerCapture(e.pointerId);
-  dragData = { startX: e.clientX, startY: e.clientY, deltaX: 0, deltaY: 0, card };
-  card.classList.add('is-dragging');
-  card.addEventListener('pointermove', onPointerMove);
-  card.addEventListener('pointerup', onPointerUp);
-  card.addEventListener('pointercancel', onPointerUp);
-}
-
-function onPointerMove(e) {
-  if (!dragData) return;
-  dragData.deltaX = e.clientX - dragData.startX;
-  dragData.deltaY = e.clientY - dragData.startY;
-  const card = dragData.card;
-  card.style.transform = `translate(${dragData.deltaX}px, ${dragData.deltaY * 0.3}px) rotate(${dragData.deltaX / SWIPE_ROTATE_DIVISOR}deg)`;
-  const op = Math.min(1, Math.abs(dragData.deltaX) / 120);
-  card.style.setProperty('--like-op', dragData.deltaX > 0 ? op : 0);
-  card.style.setProperty('--skip-op', dragData.deltaX < 0 ? op : 0);
-}
-
-function onPointerUp(e) {
-  if (!dragData) return;
-  const card = dragData.card;
-  card.removeEventListener('pointermove', onPointerMove);
-  card.removeEventListener('pointerup', onPointerUp);
-  card.removeEventListener('pointercancel', onPointerUp);
-  card.classList.remove('is-dragging');
-  const dx = dragData.deltaX;
-  dragData = null;
-  if (dx > SWIPE_THRESHOLD_PX) finishSwipe(card, 'like');
-  else if (dx < -SWIPE_THRESHOLD_PX) finishSwipe(card, 'skip');
-  else {
-    card.style.transform = '';
-    card.style.setProperty('--like-op', 0);
-    card.style.setProperty('--skip-op', 0);
+function handleSubmit(e) {
+  e?.preventDefault?.();
+  const ta = $('#chat-input');
+  const text = (ta?.value || '').trim();
+  if (!text || state.isStreaming) return;
+  if (!getApiKey()) {
+    addErrorMessage('Claude APIキーが設定されていません', '右上の歯車アイコンからキーを設定してください。');
+    openSettingsModal();
+    return;
   }
-}
-
-function finishSwipe(card, direction) {
-  const dist = direction === 'like' ? SWIPE_FLY_PX : -SWIPE_FLY_PX;
-  card.style.transition = 'transform .4s ease, opacity .4s ease';
-  card.style.transform = `translate(${dist}px, 80px) rotate(${dist / 40}deg)`;
-  card.style.opacity = '0';
-  card.dataset.gone = '1';
-
-  const id = card.dataset.spotId;
-  if (direction === 'like') state.likes.push(id);
-  else state.skips.push(id);
-  state.history.push({ id, direction });
-  refreshFavMarkers();
-  $('#swipe-undo').disabled = false;
-
-  setTimeout(() => {
-    card.remove();
-    activeCard = null;
-    updateSwipeProgress();
-    attachTopCard();
-  }, 400);
-}
-
-function undoLast() {
-  const last = state.history.pop();
-  if (!last) return;
-  if (last.direction === 'like') state.likes = state.likes.filter(x => x !== last.id);
-  else state.skips = state.skips.filter(x => x !== last.id);
-  refreshFavMarkers();
-  const spot = state.candidates.find(s => s.id === last.id);
-  if (!spot) return;
-  const newCard = buildSwipeCard(spot, state.candidates.indexOf(spot));
-  newCard.style.opacity = '0';
-  $('#swipe-deck').appendChild(newCard);
-  requestAnimationFrame(() => { newCard.style.transition = 'opacity .3s'; newCard.style.opacity = ''; });
-  activeCard = null;
-  attachTopCard();
-  $('#swipe-empty').hidden = true;
-  $('#swipe-undo').disabled = state.history.length === 0;
-  updateSwipeProgress();
-}
-
-function updateSwipeProgress() {
-  const total = state.candidates.length;
-  const done = state.history.length;
-  $('#swipe-progress-text').textContent = `${done} / ${total}`;
-}
-
-function showSwipeEmpty() { $('#swipe-empty').hidden = false; }
-
-// ─────────────────────────────────────────────
-// Itinerary
-// ─────────────────────────────────────────────
-function showItinerary() {
-  const section = $('#itinerary-section');
-  const list = $('#itinerary-list');
-  const liked = state.likes.map(id => SPOTS.find(s => s.id === id)).filter(Boolean);
-
-  $('#itinerary-count').textContent = `${liked.length}件のスポット`;
-
-  if (liked.length === 0) {
-    list.innerHTML = `<p class="itinerary-empty">気になるスポットが選ばれていません。<br>もう一度プランを作ってみてください。</p>`;
-  } else {
-    const regionOrder = ['doo','donan','doto','dohoku'];
-    liked.sort((a, b) => regionOrder.indexOf(a.region) - regionOrder.indexOf(b.region));
-    list.innerHTML = liked.map((spot, i) => `
-      <article class="itinerary-item">
-        <div class="itinerary-num">${String(i+1).padStart(2,'0')}</div>
-        <div class="itinerary-illust" style="background:${spot.color}">${getIcon(spot.icon)}</div>
-        <div class="itinerary-content">
-          <h3>${escapeHtml(spot.name)}</h3>
-          <p class="itinerary-meta">${REGIONS[spot.region].name} · ${escapeHtml(spot.area)} · ${spot.bestSeason}</p>
-          <p>${escapeHtml(spot.description)}</p>
-        </div>
-      </article>
-    `).join('');
-  }
-
-  section.hidden = false;
-  setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
-
-  if (liked.length && map) {
-    const bounds = L.latLngBounds(liked.map(s => s.coords).filter(Boolean));
-    if (bounds.isValid()) map.flyToBounds(bounds, { padding: [40, 40] });
-  }
+  ta.value = '';
+  autosizeTextarea();
+  sendUserMessage(text);
 }
 
 // ─────────────────────────────────────────────
@@ -771,131 +630,85 @@ function openSettingsModal() {
   $('#settings-status').textContent = '';
   setTimeout(() => input.focus(), 50);
 }
-
 function closeSettingsModal() {
   const ov = $('#settings-overlay');
-  if (!ov) return;
-  ov.hidden = true;
+  if (ov) ov.hidden = true;
 }
-
 function handleSaveApiKey() {
   const input = $('#api-key-input');
   const status = $('#settings-status');
   const key = input.value.trim();
   if (!key) {
     status.className = 'settings-status is-error';
-    status.textContent = 'API キーを入力してください';
+    status.textContent = 'APIキーを入力してください';
     return;
   }
   if (!key.startsWith('sk-ant-')) {
     status.className = 'settings-status is-error';
-    status.textContent = 'API キーの形式が正しくないようです (sk-ant- で始まる文字列のはず)';
+    status.textContent = 'キーの形式が正しくないようです (sk-ant- で始まる文字列のはず)';
     return;
   }
   const saved = setApiKey(key);
-  if (!saved) {
-    status.className = 'settings-status is-error';
-    status.textContent = 'ブラウザのストレージが無効です (プライベートブラウジング等)。このタブのみ動作します。';
-  } else {
-    status.className = 'settings-status is-success';
-    status.textContent = '保存しました。AIプランナーが使えます ✓';
-  }
-
+  status.className = 'settings-status is-success';
+  status.textContent = saved
+    ? '保存しました。チャットが使えます ✓'
+    : 'ストレージが無効ですが、このタブのみ動作します';
   setTimeout(() => {
     closeSettingsModal();
-    chatStarted = false;
-    startAiConversation('');
-    document.querySelector('#planner')?.scrollIntoView({ behavior: 'smooth' });
+    $('#chat-input')?.focus();
   }, 600);
 }
-
 function handleClearApiKey() {
   clearApiKey();
   $('#api-key-input').value = '';
   const status = $('#settings-status');
   status.className = 'settings-status is-success';
-  status.textContent = 'API キーを削除しました';
-  // If chat is visible, reset to prompt
-  if (chatStarted) {
-    chatStarted = false;
-    renderApiKeyPrompt();
-  }
+  status.textContent = 'キーを削除しました';
+}
+
+// ─────────────────────────────────────────────
+// Map toggle (small screens / user preference)
+// ─────────────────────────────────────────────
+function toggleMap() {
+  document.body.classList.toggle('map-hidden');
+  setTimeout(() => map?.invalidateSize(), 300);
 }
 
 // ─────────────────────────────────────────────
 // Boot
 // ─────────────────────────────────────────────
-let chatStarted = false;
-function maybeStartChat() {
-  if (chatStarted) return;
-  chatStarted = true;
-  startAiConversation('');
-}
-
-function scrollToPlanner() {
-  $('#planner')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function launchChatFromInput(text) {
-  chatStarted = true;
-  scrollToPlanner();
-  setTimeout(() => startAiConversation(text), 300);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   initMap();
 
-  // Map CTA form
-  $('#map-cta-form')?.addEventListener('submit', e => {
-    e.preventDefault();
-    const text = ($('#map-cta-input')?.value || '').trim();
-    launchChatFromInput(text);
-    if ($('#map-cta-input')) $('#map-cta-input').value = '';
+  // Chat form
+  $('#chat-form')?.addEventListener('submit', handleSubmit);
+  $('#chat-input')?.addEventListener('input', autosizeTextarea);
+  $('#chat-input')?.addEventListener('keydown', e => {
+    // Enter to send; Shift+Enter for newline
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   });
-  $('#map-cta-skip')?.addEventListener('click', () => launchChatFromInput(''));
 
-  // Auto-start chat once planner section enters viewport
-  const plannerEl = $('#planner');
-  if (plannerEl && 'IntersectionObserver' in window) {
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          maybeStartChat();
-          obs.disconnect();
+  // Welcome example chips
+  $$('.welcome-example').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prompt = btn.dataset.prompt;
+      if (prompt) {
+        if (!getApiKey()) {
+          openSettingsModal();
+          return;
         }
-      });
-    }, { threshold: 0.25 });
-    obs.observe(plannerEl);
-  }
-
-  // Smooth-scroll for in-page anchors
-  $$('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-      const id = a.getAttribute('href');
-      if (id.length > 1 && document.querySelector(id)) {
-        e.preventDefault();
-        document.querySelector(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        sendUserMessage(prompt);
       }
     });
   });
 
-  setTimeout(() => map && map.invalidateSize(), 600);
+  // Map toggle
+  $('#toggle-map')?.addEventListener('click', toggleMap);
 
-  // Reset chat
-  $('#reset-chat')?.addEventListener('click', () => { chatStarted = false; maybeStartChat(); });
-  $('#restart-btn')?.addEventListener('click', () => {
-    chatStarted = false;
-    scrollToPlanner();
-    setTimeout(() => maybeStartChat(), 300);
-  });
-
-  // Swipe actions
-  $('#swipe-skip')?.addEventListener('click', () => { const c = getTopCard(); if (c) finishSwipe(c, 'skip'); });
-  $('#swipe-like')?.addEventListener('click', () => { const c = getTopCard(); if (c) finishSwipe(c, 'like'); });
-  $('#swipe-undo')?.addEventListener('click', undoLast);
-  $('#show-itinerary')?.addEventListener('click', showItinerary);
-
-  // Settings modal
+  // Settings
   $('#open-settings')?.addEventListener('click', openSettingsModal);
   $('#settings-close')?.addEventListener('click', closeSettingsModal);
   $('#settings-overlay')?.addEventListener('click', e => {
@@ -910,4 +723,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !$('#settings-overlay').hidden) closeSettingsModal();
   });
+
+  // Trigger map resize after layout settles
+  setTimeout(() => map?.invalidateSize(), 600);
+
+  // If no key set, gently open settings on first visit (only when user clicks something)
 });
