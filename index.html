@@ -130,8 +130,21 @@
     </div>
   </div>
 
-  <!-- ===== Main: Chat + Map ===== -->
+  <!-- ===== Main: Map (left) + Chat (right) ===== -->
   <main class="chat-layout" id="main">
+
+    <aside class="map-panel" id="map-panel" aria-label="北海道マップ">
+      <div id="map" role="application" aria-label="北海道の観光スポットが表示されたマップ"></div>
+      <div class="map-overlay-legend">
+        <span class="legend-title">エリア</span>
+        <span><span class="dot dot-doo"></span>道央</span>
+        <span><span class="dot dot-donan"></span>道南</span>
+        <span><span class="dot dot-doto"></span>道東</span>
+        <span><span class="dot dot-dohoku"></span>道北</span>
+        <span class="legend-divider"></span>
+        <span class="legend-fav"><span class="dot dot-fav"></span>AI提案中</span>
+      </div>
+    </aside>
 
     <section class="chat-panel" id="chat" aria-label="AIプランナー">
       <div class="chat-thread" id="chat-thread" role="log" aria-live="polite" aria-atomic="false">
@@ -189,19 +202,6 @@
         </button>
       </form>
     </section>
-
-    <aside class="map-panel" id="map-panel" aria-label="北海道マップ">
-      <div id="map" role="application" aria-label="北海道の観光スポットが表示されたマップ"></div>
-      <div class="map-overlay-legend">
-        <span class="legend-title">エリア</span>
-        <span><span class="dot dot-doo"></span>道央</span>
-        <span><span class="dot dot-donan"></span>道南</span>
-        <span><span class="dot dot-doto"></span>道東</span>
-        <span><span class="dot dot-dohoku"></span>道北</span>
-        <span class="legend-divider"></span>
-        <span class="legend-fav"><span class="dot dot-fav"></span>AI提案中</span>
-      </div>
-    </aside>
 
   </main>
 
