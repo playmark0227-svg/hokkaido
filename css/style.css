@@ -1702,6 +1702,31 @@ body.map-hidden .map-panel { display: none; }
   color: var(--ink-light);
 }
 
+/* ----- Inline actions inside bot bubble (welcome / demo flow) ----- */
+.bot-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  margin: 0.6rem 0 0.3rem;
+}
+.bot-actions .chip {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+  min-height: 0;
+}
+.bot-actions .chip-cta {
+  background: var(--c-red);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+.bot-hint {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  margin-top: 0.5rem;
+  line-height: 1.6;
+}
+
 /* ----- Chat messages (chat-first) ----- */
 .chat-thread .chat-msg { animation: msgIn 0.25s ease-out; }
 .chat-thread .chat-msg-error .chat-bubble {

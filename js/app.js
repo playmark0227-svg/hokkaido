@@ -342,6 +342,178 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
 }
 
 // ─────────────────────────────────────────────
+// Demo itineraries (no API key needed for the 6 example prompts)
+// ─────────────────────────────────────────────
+const DEMO_ITINERARIES = {
+  "札幌に2泊3日で温泉とグルメを楽しみたい": {
+    title: "札幌2泊3日 — 温泉とグルメ満喫プラン",
+    summary: "札幌の街を満喫しつつ、定山渓温泉で湯ったり、サッポロビール園でジンギスカンも楽しめる王道プラン。",
+    days: [
+      { day: 1, theme: "札幌街歩きとビール園", spots: [
+        { spot_id: "sapporo-clock-tower", time: "午前", comment: "札幌のシンボル。明治の建造物で写真映えも◎" },
+        { spot_id: "odori-park", time: "昼", comment: "公園のスタンドでお昼ご飯。テレビ塔と一緒に撮影。" },
+        { spot_id: "sapporo-tv-tower", time: "午後", comment: "展望台から札幌の街を一望。" },
+        { spot_id: "sapporo-beer", time: "夜", comment: "サッポロビール園で名物ジンギスカンと出来立てビール。" }
+      ]},
+      { day: 2, theme: "定山渓温泉で湯ったり", spots: [
+        { spot_id: "jozankei-onsen", time: "終日", comment: "札幌からバスで70分。渓谷美と温泉で癒される一日。" }
+      ]},
+      { day: 3, theme: "札幌郊外の名所", spots: [
+        { spot_id: "hokkaido-shrine", time: "午前", comment: "札幌の総鎮守。緑豊かな円山公園内に。" },
+        { spot_id: "maruyama-zoo", time: "昼", comment: "ホッキョクグマやレッサーパンダに出会える。" },
+        { spot_id: "shiroi-koibito-park", time: "午後", comment: "白い恋人の工場見学+お菓子作り体験で旅の締めくくり。" }
+      ]}
+    ]
+  },
+  "知床と網走で大自然を満喫する3泊プランを組みたい": {
+    title: "知床・網走3泊4日 — 大自然満喫プラン",
+    summary: "世界自然遺産・知床から流氷の街・網走、神秘の湖・摩周湖まで道東の絶景を巡ります。",
+    days: [
+      { day: 1, theme: "知床到着&五湖散策", spots: [
+        { spot_id: "shiretoko", time: "終日", comment: "世界自然遺産。ウトロ温泉に宿泊。" },
+        { spot_id: "shiretoko-goko", time: "午後", comment: "原生林の中に点在する五つの湖。高架木道から知床連山を望む。" }
+      ]},
+      { day: 2, theme: "知床の絶景", spots: [
+        { spot_id: "oshinkoshin-falls", time: "午前", comment: "日本の滝百選。二筋に分かれて流れる姿が美しい。" },
+        { spot_id: "shiretoko", time: "午後", comment: "知床クルーズで野生動物観察 (ヒグマやイルカに出会えることも)。" }
+      ]},
+      { day: 3, theme: "網走移動&流氷", spots: [
+        { spot_id: "abashiri-drift-ice", time: "午前", comment: "冬の風物詩。流氷砕氷船「おーろら」で大自然の神秘を体験。" },
+        { spot_id: "abashiri-prison", time: "午後", comment: "明治時代の監獄を移築復元した野外博物館。" }
+      ]},
+      { day: 4, theme: "神秘の湖を巡る", spots: [
+        { spot_id: "lake-mashu", time: "午前", comment: "世界屈指の透明度を誇る神秘の湖。「霧の摩周湖」の幻想的な景色。" },
+        { spot_id: "lake-akan", time: "午後", comment: "マリモの生息地。アイヌコタンの文化体験も。" }
+      ]}
+    ]
+  },
+  "家族で行ける札幌・小樽周辺のおすすめスポットを教えて": {
+    title: "家族で札幌・小樽 1泊2日",
+    summary: "子連れでも楽しめる動物園や工場見学、レトロな街並み散策プラン。",
+    days: [
+      { day: 1, theme: "札幌で動物と工場見学", spots: [
+        { spot_id: "maruyama-zoo", time: "午前", comment: "子供に大人気の動物園。ホッキョクグマの泳ぐ姿は必見。" },
+        { spot_id: "shiroi-koibito-park", time: "午後", comment: "お菓子作り体験ができるテーマパーク。お土産購入も。" }
+      ]},
+      { day: 2, theme: "小樽でレトロ散策", spots: [
+        { spot_id: "otaru-canal", time: "午前", comment: "レトロな倉庫群とガス灯が美しい運河。クルーズも楽しめる。" },
+        { spot_id: "otaru-music-box", time: "昼", comment: "世界中のオルゴールが並ぶ夢の空間。蒸気時計も必見。" },
+        { spot_id: "yoichi-distillery", time: "午後", comment: "ニッカウヰスキー余市蒸溜所見学。" }
+      ]}
+    ]
+  },
+  "冬の北海道で雪まつりとスキーリゾートを巡りたい": {
+    title: "冬の北海道3泊4日 — 雪まつり&スキー",
+    summary: "札幌雪まつりから世界トップクラスのパウダースノー・ニセコ、温泉天国・登別まで。",
+    days: [
+      { day: 1, theme: "札幌雪まつり満喫", spots: [
+        { spot_id: "sapporo-snow-festival", time: "午後〜夜", comment: "2月の世界的祭典。巨大雪像のライトアップは圧巻。" },
+        { spot_id: "odori-park", time: "夜", comment: "メイン会場。屋台グルメも豊富。" }
+      ]},
+      { day: 2, theme: "ニセコへ移動&スキー", spots: [
+        { spot_id: "niseko", time: "終日", comment: "世界有数のパウダースノー。アクティビティ豊富で滞在を楽しめる。" }
+      ]},
+      { day: 3, theme: "登別温泉で湯治", spots: [
+        { spot_id: "noboribetsu-onsen", time: "終日", comment: "9種類もの泉質を誇る日本屈指の温泉郷。" },
+        { spot_id: "jigokudani", time: "午後", comment: "登別の象徴。雪景色と湯けむりが幻想的。" }
+      ]},
+      { day: 4, theme: "札幌へ戻る", spots: [
+        { spot_id: "sapporo-clock-tower", time: "午前", comment: "札幌のシンボルを訪れて旅の締めくくり。" }
+      ]}
+    ]
+  },
+  "美瑛と富良野の花と景色を満喫する1泊2日": {
+    title: "美瑛・富良野1泊2日 — 花と景色の旅",
+    summary: "ラベンダーの紫の絨毯から青い池の神秘的な絶景まで、美瑛富良野の名所を巡ります。",
+    days: [
+      { day: 1, theme: "富良野の花畑", spots: [
+        { spot_id: "furano-lavender", time: "午前", comment: "ラベンダー畑の代表格。7月が見頃。" },
+        { spot_id: "furano", time: "昼", comment: "ドラマ「北の国から」の舞台。チーズ工房やワインも。" }
+      ]},
+      { day: 2, theme: "美瑛の絶景", spots: [
+        { spot_id: "biei-blue-pond", time: "午前", comment: "コバルトブルーに輝く幻想的な池。Apple Mac壁紙の名所。" },
+        { spot_id: "biei-patchwork", time: "昼", comment: "色とりどりの畑が織りなす丘陵。CMの木々も。" },
+        { spot_id: "shirahige-falls", time: "午後", comment: "岩の隙間から湧き出るブルーの水。青い池の上流。" }
+      ]}
+    ]
+  },
+  "函館の夜景と歴史散策の1泊2日プラン": {
+    title: "函館1泊2日 — 夜景と歴史散策",
+    summary: "世界三大夜景の函館山、星形要塞の五稜郭、レトロな元町エリアを巡る王道プラン。",
+    days: [
+      { day: 1, theme: "歴史散策&夜景", spots: [
+        { spot_id: "goryokaku", time: "午前", comment: "星形の城郭が美しい特別史跡。タワーから全景を。" },
+        { spot_id: "motomachi", time: "午後", comment: "異国情緒あふれる坂の街。教会やレトロな洋館を巡る。" },
+        { spot_id: "kanemori-warehouse", time: "夕方", comment: "ベイエリアの赤レンガ倉庫群。ショッピングとカフェ。" },
+        { spot_id: "mt-hakodate", time: "夜", comment: "世界三大夜景。扇形の夜景は息をのむ美しさ。" }
+      ]},
+      { day: 2, theme: "朝市&大沼", spots: [
+        { spot_id: "hakodate-morning-market", time: "午前", comment: "新鮮な海鮮丼の朝食。イカ釣り体験も。" },
+        { spot_id: "onuma-park", time: "午後", comment: "駒ヶ岳を背景にした美しい湖沼群。" }
+      ]}
+    ]
+  }
+};
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function runDemoFlow(prompt, demo) {
+  if (state.isStreaming) return;
+  state.isStreaming = true;
+  setInputDisabled(true);
+
+  addUserMessage(prompt);
+  const typing = addTypingIndicator();
+  await sleep(700);
+  typing.remove();
+
+  addBotMessage('ご希望に合わせて旅程をご提案します。');
+  await sleep(400);
+  renderItinerary(demo);
+  await sleep(500);
+
+  const closing = addBotMessage('');
+  closing.querySelector('.chat-bubble').innerHTML = `
+    上記がおすすめプランです。<br>
+    <div class="bot-actions">
+      <button type="button" class="chip" data-action="back-to-examples">← 別の例を見る</button>
+      <button type="button" class="chip chip-cta" data-action="open-settings">⚙ APIキーを設定して自由に相談する</button>
+    </div>
+    <small class="bot-hint">続きの質問や修正には Claude API キーが必要です (Anthropic の無料アカウントで取得可)。</small>
+  `;
+  closing.querySelector('[data-action="open-settings"]')?.addEventListener('click', openSettingsModal);
+  closing.querySelector('[data-action="back-to-examples"]')?.addEventListener('click', resetToWelcome);
+
+  state.isStreaming = false;
+  setInputDisabled(false);
+}
+
+// Capture welcome HTML once so we can restore it
+let welcomeHTML = '';
+function captureWelcomeHTML() {
+  const w = $('#chat-welcome');
+  if (w && !welcomeHTML) welcomeHTML = w.outerHTML;
+}
+function resetToWelcome() {
+  state.apiMessages = [];
+  state.highlightedSpotIds = new Set();
+  refreshHighlights();
+  const thread = $('#chat-thread');
+  thread.innerHTML = welcomeHTML || '';
+  $$('.welcome-example').forEach(wireExampleButton);
+}
+function wireExampleButton(btn) {
+  btn.addEventListener('click', () => {
+    const prompt = btn.dataset.prompt;
+    if (!prompt) return;
+    const demo = DEMO_ITINERARIES[prompt];
+    if (demo) runDemoFlow(prompt, demo);
+    else if (getApiKey()) sendUserMessage(prompt);
+    else openSettingsModal();
+  });
+}
+
+// ─────────────────────────────────────────────
 // Chat UI
 // ─────────────────────────────────────────────
 function ensureChatThread() {
@@ -619,8 +791,20 @@ function handleSubmit(e) {
   const text = (ta?.value || '').trim();
   if (!text || state.isStreaming) return;
   if (!getApiKey()) {
-    addErrorMessage('Claude APIキーが設定されていません', '右上の歯車アイコンからキーを設定してください。');
-    openSettingsModal();
+    addUserMessage(text);
+    ta.value = '';
+    autosizeTextarea();
+    const m = addBotMessage('');
+    m.querySelector('.chat-bubble').innerHTML = `
+      個別のご相談には Claude API キーが必要です。<br>
+      <div class="bot-actions">
+        <button type="button" class="chip" data-action="back-to-examples">← 例から選ぶ</button>
+        <button type="button" class="chip chip-cta" data-action="open-settings">⚙ APIキーを設定する</button>
+      </div>
+      <small class="bot-hint">右上の歯車アイコンからいつでも設定できます。Anthropicの無料アカウントで取得可。</small>
+    `;
+    m.querySelector('[data-action="open-settings"]')?.addEventListener('click', openSettingsModal);
+    m.querySelector('[data-action="back-to-examples"]')?.addEventListener('click', resetToWelcome);
     return;
   }
   ta.value = '';
@@ -702,19 +886,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Welcome example chips
-  $$('.welcome-example').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const prompt = btn.dataset.prompt;
-      if (prompt) {
-        if (!getApiKey()) {
-          openSettingsModal();
-          return;
-        }
-        sendUserMessage(prompt);
-      }
-    });
-  });
+  // Capture welcome HTML for later restore via "別の例を見る"
+  captureWelcomeHTML();
+
+  // Welcome example chips — pre-baked demo flow (no API key required)
+  $$('.welcome-example').forEach(wireExampleButton);
 
   // Map toggle
   $('#toggle-map')?.addEventListener('click', toggleMap);
