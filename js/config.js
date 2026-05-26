@@ -13,4 +13,4 @@
 // 3. 本格運用する場合は Cloudflare Workers などのプロキシに移行
 // ============================================================
 
-window.ANTHROPIC_API_KEY = '';  // ← ここに sk-ant-... を入れる
+window.ANTHROPIC_API_KEY = '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';
