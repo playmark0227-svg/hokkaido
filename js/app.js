@@ -474,14 +474,11 @@ async function runDemoFlow(prompt, demo) {
 
   const closing = addBotMessage('');
   closing.querySelector('.chat-bubble').innerHTML = `
-    上記がおすすめプランです。<br>
+    上記がおすすめプランです。気になる点があれば、下のチャット欄からお知らせください。<br>
     <div class="bot-actions">
       <button type="button" class="chip" data-action="back-to-examples">← 別の例を見る</button>
-      <button type="button" class="chip chip-cta" data-action="open-settings">⚙ APIキーを設定して自由に相談する</button>
     </div>
-    <small class="bot-hint">続きの質問や修正には Claude API キーが必要です (Anthropic の無料アカウントで取得可)。</small>
   `;
-  closing.querySelector('[data-action="open-settings"]')?.addEventListener('click', openSettingsModal);
   closing.querySelector('[data-action="back-to-examples"]')?.addEventListener('click', resetToWelcome);
 
   state.isStreaming = false;
@@ -508,8 +505,7 @@ function wireExampleButton(btn) {
     if (!prompt) return;
     const demo = DEMO_ITINERARIES[prompt];
     if (demo) runDemoFlow(prompt, demo);
-    else if (getApiKey()) sendUserMessage(prompt);
-    else openSettingsModal();
+    else sendUserMessage(prompt);
   });
 }
 
@@ -759,7 +755,7 @@ async function runAssistantTurn(depth) {
 function handleApiError(err) {
   const msg = err?.message || String(err);
   let advice = '';
-  if (err?.status === 401) advice = 'APIキーが正しくないか、無効化されている可能性があります。右上の歯車から再入力してください。';
+  if (err?.status === 401) advice = 'サイト側のAPIキーが無効化されている可能性があります。サイト管理者にお知らせください。';
   else if (err?.status === 403) advice = 'このキーには利用権限がありません。Anthropic Consoleでキーを確認してください。';
   else if (err?.status === 429) advice = 'レート制限/予算上限に達しました。少し時間を空けて再試行してください。';
   else if (err?.status === 400) advice = 'リクエストパラメータが不正です。開発者ツールのコンソールをご確認ください。';
@@ -790,75 +786,9 @@ function handleSubmit(e) {
   const ta = $('#chat-input');
   const text = (ta?.value || '').trim();
   if (!text || state.isStreaming) return;
-  if (!getApiKey()) {
-    addUserMessage(text);
-    ta.value = '';
-    autosizeTextarea();
-    const m = addBotMessage('');
-    m.querySelector('.chat-bubble').innerHTML = `
-      個別のご相談には Claude API キーが必要です。<br>
-      <div class="bot-actions">
-        <button type="button" class="chip" data-action="back-to-examples">← 例から選ぶ</button>
-        <button type="button" class="chip chip-cta" data-action="open-settings">⚙ APIキーを設定する</button>
-      </div>
-      <small class="bot-hint">右上の歯車アイコンからいつでも設定できます。Anthropicの無料アカウントで取得可。</small>
-    `;
-    m.querySelector('[data-action="open-settings"]')?.addEventListener('click', openSettingsModal);
-    m.querySelector('[data-action="back-to-examples"]')?.addEventListener('click', resetToWelcome);
-    return;
-  }
   ta.value = '';
   autosizeTextarea();
   sendUserMessage(text);
-}
-
-// ─────────────────────────────────────────────
-// Settings modal
-// ─────────────────────────────────────────────
-function openSettingsModal() {
-  const ov = $('#settings-overlay');
-  if (!ov) return;
-  ov.hidden = false;
-  const input = $('#api-key-input');
-  input.value = getApiKey();
-  $('#settings-status').className = 'settings-status';
-  $('#settings-status').textContent = '';
-  setTimeout(() => input.focus(), 50);
-}
-function closeSettingsModal() {
-  const ov = $('#settings-overlay');
-  if (ov) ov.hidden = true;
-}
-function handleSaveApiKey() {
-  const input = $('#api-key-input');
-  const status = $('#settings-status');
-  const key = input.value.trim();
-  if (!key) {
-    status.className = 'settings-status is-error';
-    status.textContent = 'APIキーを入力してください';
-    return;
-  }
-  if (!key.startsWith('sk-ant-')) {
-    status.className = 'settings-status is-error';
-    status.textContent = 'キーの形式が正しくないようです (sk-ant- で始まる文字列のはず)';
-    return;
-  }
-  const saved = setApiKey(key);
-  status.className = 'settings-status is-success';
-  status.textContent = saved
-    ? '保存しました。チャットが使えます ✓'
-    : 'ストレージが無効ですが、このタブのみ動作します';
-  setTimeout(() => {
-    closeSettingsModal();
-    $('#chat-input')?.focus();
-  }, 600);
-}
-function handleClearApiKey() {
-  clearApiKey();
-  $('#api-key-input').value = '';
-  const status = $('#settings-status');
-  status.className = 'settings-status is-success';
-  status.textContent = 'キーを削除しました';
 }
 
 // ─────────────────────────────────────────────
@@ -895,24 +825,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Map toggle
   $('#toggle-map')?.addEventListener('click', toggleMap);
 
-  // Settings
-  $('#open-settings')?.addEventListener('click', openSettingsModal);
-  $('#settings-close')?.addEventListener('click', closeSettingsModal);
-  $('#settings-overlay')?.addEventListener('click', e => {
-    if (e.target.id === 'settings-overlay') closeSettingsModal();
-  });
-  $('#save-api-key')?.addEventListener('click', handleSaveApiKey);
-  $('#clear-api-key')?.addEventListener('click', handleClearApiKey);
-  $('#toggle-key-visibility')?.addEventListener('click', () => {
-    const input = $('#api-key-input');
-    input.type = input.type === 'password' ? 'text' : 'password';
-  });
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !$('#settings-overlay').hidden) closeSettingsModal();
-  });
-
   // Trigger map resize after layout settles
   setTimeout(() => map?.invalidateSize(), 600);
-
-  // If no key set, gently open settings on first visit (only when user clicks something)
 });

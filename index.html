@@ -84,51 +84,10 @@
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
             </button>
           </li>
-          <li>
-            <button type="button" id="open-settings" class="nav-settings" aria-label="APIキー設定" title="Claude APIキーの設定">
-              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </button>
-          </li>
         </ul>
       </nav>
     </div>
   </header>
-
-  <!-- ===== Settings Modal ===== -->
-  <div class="settings-overlay" id="settings-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="settings-title">
-    <div class="settings-modal">
-      <button type="button" class="settings-close" id="settings-close" aria-label="閉じる">
-        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
-      </button>
-      <h3 id="settings-title">AI設定</h3>
-      <p class="settings-desc">
-        本サイトでは Anthropic Claude API を使ってAI旅プランを生成しています。<br>
-        ご利用にはあなたの Claude API キーが必要です。
-      </p>
-      <label class="settings-label">
-        Claude API キー
-        <div class="settings-input-row">
-          <input type="password" id="api-key-input" placeholder="sk-ant-..." autocomplete="off" />
-          <button type="button" id="toggle-key-visibility" class="settings-eye" aria-label="表示切替">
-            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </div>
-      </label>
-      <div class="settings-actions">
-        <button type="button" id="save-api-key" class="btn">保存して試す</button>
-        <button type="button" id="clear-api-key" class="btn btn-secondary">削除</button>
-      </div>
-      <p class="settings-note">
-        🔒 キーは <strong>あなたのブラウザ内 (localStorage)</strong> にのみ保存され、当サイトのサーバーには送信されません。<br>
-        Claude API のリクエストはブラウザから直接 Anthropic に送られます。<br>
-        キーをお持ちでない場合は <a href="https://console.anthropic.com/" target="_blank" rel="noopener">console.anthropic.com</a> で取得できます。
-      </p>
-      <p class="settings-status" id="settings-status"></p>
-    </div>
-  </div>
 
   <!-- ===== Main: Map (left) + Chat (right) ===== -->
   <main class="chat-layout" id="main">
@@ -161,7 +120,7 @@
             </div>
             <h1 class="welcome-title">北海道専門のAIプランナー</h1>
             <p class="welcome-sub">行きたい場所・気分・日程を教えてください。<br>あなたにぴったりの旅程をご提案します。</p>
-            <p class="welcome-hint">下の例はクリック1つですぐ表示できます ✓<br><small>(個別のご相談には右上の歯車から Claude APIキーの設定をお願いします)</small></p>
+            <p class="welcome-hint">下の例をワンクリックで表示、または下のチャット欄から自由にご相談ください。</p>
           </div>
 
           <div class="welcome-examples" aria-label="例: クリックすると相談を始めます">
