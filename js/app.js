@@ -143,6 +143,9 @@ const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナー
 - 親しみやすいが落ち着いたトーン。絵文字や「♪」は避ける
 - 1〜2文で簡潔に。長い前置きはしない
 - 質問は一度に1〜2個まで
+- 道外の人にも分かりやすい言葉で。地元用語の「道央/道南/道東/道北」は使わず、
+  代わりに「札幌・小樽エリア」「函館エリア」「知床・釧路エリア」「旭川・稚内エリア」のように
+  具体的な地名で表現する
 
 【ヒアリング項目 (柔軟に)】
 - 期間・日程
@@ -162,6 +165,12 @@ const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナー
 - エリア・テーマのバランス、移動の現実性を考慮
 - 「hasVideo: true」のスポットも、適合度が高いなら積極的に含めてよい (条件には合わせる)
 - 同じスポットは1つの旅程内で重複させない
+
+【参考: スポットデータのregion値の対応 (内部用)】
+- doo    = 札幌・小樽・富良野・美瑛・ニセコ・登別 (北海道中央エリア)
+- donan  = 函館・松前・大沼 (北海道南エリア)
+- doto   = 知床・釧路・網走・阿寒・帯広 (北海道東エリア)
+- dohoku = 旭川・稚内・利尻礼文・サロベツ (北海道北エリア)
 
 【ツール呼び出し後】
 - ツール呼び出し後は短く一言「いかがでしょうか?」「気になる箇所はありますか?」程度で済ませる
@@ -450,10 +459,12 @@ function renderItinerary(input) {
 }
 
 function renderSpotCard(spot, suggestion = {}) {
-  const region = REGIONS[spot.region]?.name || '';
   const hasVideo = !!spot.videoUrl;
   const timeBadge = suggestion.time
     ? `<span class="spot-time">${escapeHtml(suggestion.time)}</span>`
+    : '';
+  const seasonNote = spot.bestSeason && spot.bestSeason !== '通年'
+    ? `<span class="spot-season-note">ベストシーズン: ${escapeHtml(spot.bestSeason)}</span>`
     : '';
 
   const mediaHTML = hasVideo
@@ -478,15 +489,15 @@ function renderSpotCard(spot, suggestion = {}) {
           ${timeBadge}
         </div>
         <div class="spot-listing-meta">
-          <span>📍 ${escapeHtml(region)} · ${escapeHtml(spot.area)}</span>
-          <span>· ${escapeHtml(spot.bestSeason)}</span>
+          <span>📍 ${escapeHtml(spot.area)}</span>
+          ${seasonNote}
         </div>
         ${suggestion.comment
           ? `<p class="spot-listing-comment">💡 ${escapeHtml(suggestion.comment)}</p>`
           : ''}
         <p class="spot-listing-desc">${escapeHtml(spot.description)}</p>
         <div class="spot-listing-foot">
-          <small>${escapeHtml(spot.accessTime || '')}</small>
+          <small>🚆 ${escapeHtml(spot.accessTime || '')}</small>
           <button type="button" class="spot-pan-btn" data-spot-pan="${spot.id}">
             マップで見る →
           </button>

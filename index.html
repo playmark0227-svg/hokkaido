@@ -80,12 +80,12 @@
           <li><a href="spots.html">観光スポット</a></li>
           <li><a href="business.html">掲載のご案内</a></li>
           <li>
-            <button type="button" id="toggle-map" class="nav-settings" aria-label="マップを表示/非表示" title="マップ表示切替">
+            <button type="button" id="toggle-map" class="nav-settings" aria-label="マップ表示の切替" title="マップの表示/非表示を切り替え">
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
             </button>
           </li>
           <li>
-            <button type="button" id="open-settings" class="nav-settings" aria-label="AI設定">
+            <button type="button" id="open-settings" class="nav-settings" aria-label="APIキー設定" title="Claude APIキーの設定">
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -136,11 +136,11 @@
     <aside class="map-panel" id="map-panel" aria-label="北海道マップ">
       <div id="map" role="application" aria-label="北海道の観光スポットが表示されたマップ"></div>
       <div class="map-overlay-legend">
-        <span class="legend-title">エリア</span>
-        <span><span class="dot dot-doo"></span>道央</span>
-        <span><span class="dot dot-donan"></span>道南</span>
-        <span><span class="dot dot-doto"></span>道東</span>
-        <span><span class="dot dot-dohoku"></span>道北</span>
+        <span class="legend-title">エリア（色分け）</span>
+        <span><span class="dot dot-doo"></span>札幌・小樽・富良野</span>
+        <span><span class="dot dot-donan"></span>函館・松前</span>
+        <span><span class="dot dot-doto"></span>知床・釧路・網走</span>
+        <span><span class="dot dot-dohoku"></span>旭川・稚内・利尻礼文</span>
         <span class="legend-divider"></span>
         <span class="legend-fav"><span class="dot dot-fav"></span>AI提案中</span>
       </div>
@@ -161,6 +161,7 @@
             </div>
             <h1 class="welcome-title">北海道専門のAIプランナー</h1>
             <p class="welcome-sub">行きたい場所・気分・日程を教えてください。<br>あなたにぴったりの旅程をご提案します。</p>
+            <p class="welcome-hint">下の例をクリックするか、画面下のチャット欄に直接入力できます</p>
           </div>
 
           <div class="welcome-examples" aria-label="例: クリックすると相談を始めます">
@@ -170,8 +171,8 @@
             <button type="button" class="welcome-example" data-prompt="知床と網走で大自然を満喫する3泊プランを組みたい">
               <strong>知床・網走の3泊プラン</strong><span>大自然を満喫したい</span>
             </button>
-            <button type="button" class="welcome-example" data-prompt="家族で行ける道央のおすすめスポットを教えて">
-              <strong>家族で道央旅</strong><span>子供連れで楽しめる場所</span>
+            <button type="button" class="welcome-example" data-prompt="家族で行ける札幌・小樽周辺のおすすめスポットを教えて">
+              <strong>家族で札幌・小樽旅</strong><span>子供連れで楽しめる場所</span>
             </button>
             <button type="button" class="welcome-example" data-prompt="冬の北海道で雪まつりとスキーリゾートを巡りたい">
               <strong>冬の北海道</strong><span>雪まつりとスキーを満喫</span>
@@ -192,7 +193,7 @@
           id="chat-input"
           class="chat-textarea"
           rows="1"
-          placeholder="行きたい場所や気分を教えてください..."
+          placeholder="例: 札幌に2泊で温泉とグルメ、子供連れで…"
           aria-label="AIへの質問を入力"></textarea>
         <button type="submit" id="chat-send" class="chat-send-btn" aria-label="送信">
           <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

@@ -1870,8 +1870,17 @@ body.map-hidden .map-panel { display: none; }
   font-size: 0.8rem;
   color: var(--ink-light);
   display: flex;
-  gap: 0.3rem;
+  gap: 0.5rem 0.6rem;
   flex-wrap: wrap;
+  align-items: center;
+}
+.spot-season-note {
+  font-size: 0.74rem;
+  background: var(--paper-warm);
+  border: 1.5px solid var(--washi);
+  border-radius: 12px;
+  padding: 0.1rem 0.55rem;
+  color: var(--ink);
 }
 .spot-listing-comment {
   font-family: "Klee One", sans-serif;

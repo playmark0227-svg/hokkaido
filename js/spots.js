@@ -921,10 +921,38 @@ const SPOTS = [
 ];
 
 const REGIONS = {
-  doo:    { name: '道央',   nameEn: 'Central',  color: '#E84A38', icon: 'mountain' },
-  donan:  { name: '道南',   nameEn: 'Southern', color: '#F09040', icon: 'castle' },
-  doto:   { name: '道東',   nameEn: 'Eastern',  color: '#6FAE52', icon: 'crane' },
-  dohoku: { name: '道北',   nameEn: 'Northern', color: '#4A8DC0', icon: 'snowflake' }
+  doo:    {
+    name: '札幌・小樽・富良野',
+    nameShort: '道央',
+    nameEn: 'Central',
+    cities: '札幌・小樽・富良野・美瑛・ニセコ・登別',
+    color: '#E84A38',
+    icon: 'mountain'
+  },
+  donan:  {
+    name: '函館・松前',
+    nameShort: '道南',
+    nameEn: 'Southern',
+    cities: '函館・松前・大沼・江差',
+    color: '#F09040',
+    icon: 'castle'
+  },
+  doto:   {
+    name: '知床・釧路・網走',
+    nameShort: '道東',
+    nameEn: 'Eastern',
+    cities: '知床・釧路・網走・阿寒・帯広',
+    color: '#6FAE52',
+    icon: 'crane'
+  },
+  dohoku: {
+    name: '旭川・稚内・利尻礼文',
+    nameShort: '道北',
+    nameEn: 'Northern',
+    cities: '旭川・稚内・利尻・礼文・サロベツ',
+    color: '#4A8DC0',
+    icon: 'snowflake'
+  }
 };
 
 const CATEGORIES = {
