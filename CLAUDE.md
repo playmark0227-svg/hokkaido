@@ -14,7 +14,7 @@ Actions: https://github.com/playmark0227-svg/hokkaido/actions
 
 ## Working preferences
 
-- **必ず push 後にプレビュー URL を併記する** (the user explicitly asked for this).
+- **毎ターン終わりに必ずプレビュー URL を併記する** (push の有無にかかわらず、会話の終わりごとに上の URL を貼る)。
 - Branch: `claude/hokkaido-tourism-portal-nSnZw`
 - Deployment: GitHub Actions → Pages (workflow at `.github/workflows/pages.yml`).
   Auto-deploys on push to `main` or this feature branch.
