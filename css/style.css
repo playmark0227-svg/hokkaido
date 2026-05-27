@@ -1588,21 +1588,24 @@ body.layout-chat {
 
 .chat-layout {
   display: grid;
-  /* Left: map (smaller, fixed) — Right: chat (flexible) */
-  grid-template-columns: min(45vw, 540px) minmax(0, 1fr);
+  /* Desktop: Map (left) — Chat (center) — Plan (right) */
+  grid-template-columns: min(32vw, 440px) minmax(0, 1fr) min(28vw, 380px);
   height: calc(100vh - var(--chat-header-h));
   height: calc(100dvh - var(--chat-header-h));
   position: relative;
   background: var(--paper);
 }
 body.map-hidden .chat-layout {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr) min(28vw, 380px);
 }
 body.map-hidden .map-panel { display: none; }
 
 @media (max-width: 960px) {
   .chat-layout {
     grid-template-rows: 32vh minmax(0, 1fr);
+    grid-template-columns: 1fr;
+  }
+  body.map-hidden .chat-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -3251,26 +3254,47 @@ body.drawer-open .planner-overlay {
   pointer-events: auto;
 }
 
-/* Drawer */
+/* Planner panel: side column on desktop, slide-in drawer on mobile */
 .planner-drawer {
-  position: fixed;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: min(420px, 92vw);
   background: var(--paper);
   background-image: var(--washi-card);
   background-size: 600px auto;
   border-left: 3px solid var(--ink);
-  box-shadow: -8px 0 0 var(--ink), -12px 0 20px rgba(0,0,0,0.15);
-  z-index: 999;
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  min-height: 0;
 }
-body.drawer-open .planner-drawer {
-  transform: translateX(0);
+
+/* Mobile: turn into right-side drawer */
+@media (max-width: 960px) {
+  .planner-drawer {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: min(420px, 92vw);
+    box-shadow: -8px 0 0 var(--ink), -12px 0 20px rgba(0,0,0,0.15);
+    z-index: 999;
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  body.drawer-open .planner-drawer {
+    transform: translateX(0);
+  }
+}
+
+/* Desktop: hide close button (always visible) and toggle button (redundant) */
+@media (min-width: 961px) {
+  .planner-close-btn {
+    display: none;
+  }
+  .plan-toggle-btn {
+    display: none;
+  }
+  /* Hide overlay backdrop on desktop entirely */
+  .planner-overlay {
+    display: none !important;
+  }
 }
 
 .planner-head {

@@ -28,7 +28,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <link rel="stylesheet" href="css/style.css?v=20260527e" />
+  <link rel="stylesheet" href="css/style.css?v=20260527f" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E" />
 
   <script type="application/ld+json">
@@ -170,27 +170,29 @@
       </form>
     </section>
 
+    <!-- ===== Planner panel (always visible on desktop, drawer on mobile) ===== -->
+    <aside class="planner-drawer" id="planner-drawer" aria-labelledby="planner-title">
+      <div class="planner-head">
+        <h2 id="planner-title">あなたのプラン<span class="planner-subtitle">My Itinerary</span></h2>
+        <button type="button" id="planner-close" class="planner-close-btn" aria-label="閉じる">×</button>
+      </div>
+      <div class="planner-body" id="planner-body">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="planner-foot">
+        <button type="button" id="planner-add-day" class="planner-foot-btn">＋ 日を追加</button>
+        <button type="button" id="planner-clear" class="planner-foot-btn danger">全クリア</button>
+      </div>
+    </aside>
+
   </main>
 
-  <!-- ===== Planner Drawer ===== -->
+  <!-- Backdrop only used on mobile when drawer is open -->
   <div class="planner-overlay" id="planner-overlay" aria-hidden="true"></div>
-  <aside class="planner-drawer" id="planner-drawer" aria-hidden="true" aria-labelledby="planner-title">
-    <div class="planner-head">
-      <h2 id="planner-title">あなたのプラン<span class="planner-subtitle">My Itinerary</span></h2>
-      <button type="button" id="planner-close" class="planner-close-btn" aria-label="閉じる">×</button>
-    </div>
-    <div class="planner-body" id="planner-body">
-      <!-- Rendered by JS -->
-    </div>
-    <div class="planner-foot">
-      <button type="button" id="planner-add-day" class="planner-foot-btn">＋ 日を追加</button>
-      <button type="button" id="planner-clear" class="planner-foot-btn danger">全クリア</button>
-    </div>
-  </aside>
 
-  <script src="js/config.js?v=20260527e"></script>
-  <script src="js/spots.js?v=20260527e"></script>
-  <script src="js/icons.js?v=20260527e"></script>
-  <script src="js/app.js?v=20260527e"></script>
+  <script src="js/config.js?v=20260527f"></script>
+  <script src="js/spots.js?v=20260527f"></script>
+  <script src="js/icons.js?v=20260527f"></script>
+  <script src="js/app.js?v=20260527f"></script>
 </body>
 </html>
