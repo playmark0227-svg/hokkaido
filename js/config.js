@@ -9,4 +9,4 @@
 // 例: 'https://hokkaido-anthropic-proxy.YOUR-SUBDOMAIN.workers.dev'
 // ============================================================
 
-window.ANTHROPIC_PROXY_URL = '';
+window.ANTHROPIC_PROXY_URL = 'https://hokkaido-anthropic-proxy.ayukun-0227.workers.dev';
