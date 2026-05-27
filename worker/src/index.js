@@ -71,8 +71,19 @@ export default {
     }
 
     if (!env.ANTHROPIC_API_KEY) {
+      const envKeys = Object.keys(env);
+      console.log('[ERROR] ANTHROPIC_API_KEY not in env. Available keys:', envKeys);
       return new Response(JSON.stringify({
-        error: { type: 'server_misconfigured', message: 'ANTHROPIC_API_KEY secret is not set on the Worker.' },
+        error: {
+          type: 'server_misconfigured',
+          message: 'ANTHROPIC_API_KEY secret is not set on the Worker.',
+          debug: {
+            envKeysCount: envKeys.length,
+            envKeys: envKeys,
+            hasKey: 'ANTHROPIC_API_KEY' in env,
+            keyType: typeof env.ANTHROPIC_API_KEY,
+          },
+        },
       }), {
         status: 500,
         headers: { 'content-type': 'application/json', ...corsHeaders(origin) },
