@@ -106,6 +106,7 @@ function addToPlan(spotId, dayIndex = 0) {
   }
   state.plan.days[dayIndex].spotIds.push(spotId);
   onPlanChanged();
+  openPlannerDrawer();
 }
 function removeFromPlan(spotId) {
   const idx = findSpotDayIndex(spotId);
@@ -137,18 +138,6 @@ function removeDay(dayIndex) {
 function clearPlan() {
   state.plan = defaultPlan();
   onPlanChanged();
-}
-function applyItineraryToPlan(input) {
-  const validDays = (input?.days || []).filter(d => d.spots?.length);
-  if (!validDays.length) return;
-  state.plan = {
-    days: validDays.map(d => ({
-      id: newDayId(),
-      spotIds: d.spots.map(s => s.spot_id).filter(id => SPOT_BY_ID[id]),
-    })),
-  };
-  onPlanChanged();
-  openPlannerDrawer();
 }
 function onPlanChanged() {
   savePlan();
@@ -292,7 +281,7 @@ const SPOTS_FOR_AI = SPOTS.map(s => ({
   hasVideo: !!s.videoUrl,
 }));
 
-const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナーです。ユーザーと対話して旅程を組み立てます。
+const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナーです。ユーザーと対話して、おすすめの観光スポットを提案します。
 
 【話し方】
 - 親しみやすいが落ち着いたトーン。絵文字や「♪」は避ける
@@ -308,18 +297,21 @@ const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナー
 - マストで行きたい場所
 - 同行者・出発地・予算 (任意)
 
-【ツール使用】
-- 必要な情報が揃ったら propose_itinerary ツールを呼んで旅程を提案する
-- 各スポットには日付・時間帯・コメントを添える
-- 日帰り: 3-5スポット / 1泊: 5-8 / 2泊: 8-12 / 3泊+: 10-16
-- ユーザーが「もう少し違う案」「○○を入れて」と言えば、再度ツールを呼んで修正版を提案
+【ツール使用 - 重要】
+- 必要な情報が揃ったら propose_spots ツールを呼んで「こんなところどうですか?」と
+  おすすめスポットを提案する
+- 旅程の日割り (Day 1, Day 2 など) は組まなくてよい。フラットなおすすめリストを返す
+- ユーザーは提案された中から自分で選んで、自分のプランに組み立てる仕組み
+- 1回の提案で 6〜12 スポット程度
+- 各スポットに「なぜおすすめか」「楽しみ方」を1〜2文の comment で添える
+- ユーザーが「もう少し違う案」「○○を入れて」と言えば、再度ツールを呼んで違うスポットを提案
 - スポットIDは渡されたデータの id を必ず使う
 
 【スポット選定の指針】
 - ユーザーの条件に合致するものを優先
 - エリア・テーマのバランス、移動の現実性を考慮
 - 「hasVideo: true」のスポットも、適合度が高いなら積極的に含めてよい (条件には合わせる)
-- 同じスポットは1つの旅程内で重複させない
+- 同じスポットは1つの提案内で重複させない
 
 【参考: スポットデータのregion値の対応 (内部用)】
 - doo    = 札幌・小樽・富良野・美瑛・ニセコ・登別 (北海道中央エリア)
@@ -328,8 +320,9 @@ const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナー
 - dohoku = 旭川・稚内・利尻礼文・サロベツ (北海道北エリア)
 
 【ツール呼び出し後】
-- ツール呼び出し後は短く一言「いかがでしょうか?」「気になる箇所はありますか?」程度で済ませる
-- 旅程の説明をテキストで繰り返さない (UIに表示されるので不要)
+- ツール呼び出し後は短く一言「いかがでしょうか?」「気になるところはありますか?」程度で済ませる
+- スポットの説明をテキストで繰り返さない (UIに表示されるので不要)
+- ユーザーが各スポットをクリックして自分のプランに追加することを伝える
 `;
 
 function buildSystem() {
@@ -344,44 +337,33 @@ function buildSystem() {
 }
 
 const TOOLS = [{
-  name: 'propose_itinerary',
-  description: '対話で集めた条件に基づき、北海道の旅程を提案する。日付ごとにスポットを並べてユーザーに表示する。再提案する場合も同じツールを呼ぶ。',
+  name: 'propose_spots',
+  description: '対話で集めた条件に基づき、北海道のおすすめ観光スポットをフラットに提案する。「こんなところどうですか?」というニュアンスで、ユーザーが自分で選んで自分のプランに組み立てられるようにする。日割りはしない。再提案する場合も同じツールを呼ぶ。',
   input_schema: {
     type: 'object',
     properties: {
       title: {
         type: 'string',
-        description: '旅程のタイトル。例: 「札幌・小樽 2泊3日 温泉とグルメ」'
+        description: '提案のタイトル。例: 「札幌・小樽でおすすめの温泉とグルメスポット」'
       },
-      summary: {
+      intro: {
         type: 'string',
-        description: '旅程全体のテーマや見どころを1〜2文で。'
+        description: '提案の前置きを1〜2文で。例: 「以下のスポットがあなたの条件に合いそうです」'
       },
-      days: {
+      spots: {
         type: 'array',
+        description: '提案するスポットを並べる。6〜12個程度。',
         items: {
           type: 'object',
           properties: {
-            day: { type: 'number', description: '日数 (1始まり)' },
-            theme: { type: 'string', description: 'その日のテーマ (例: 札幌街歩き)' },
-            spots: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  spot_id: { type: 'string', description: '提供データの id を必ず使う' },
-                  time: { type: 'string', description: '午前 / 昼 / 午後 / 夕方 / 夜 など' },
-                  comment: { type: 'string', description: 'そのスポットの楽しみ方や見どころを1〜2文で。AIプランナーらしい所感。' },
-                },
-                required: ['spot_id', 'comment']
-              }
-            }
+            spot_id: { type: 'string', description: '提供データの id を必ず使う' },
+            comment: { type: 'string', description: 'なぜおすすめか・楽しみ方を1〜2文で。' },
           },
-          required: ['day', 'spots']
+          required: ['spot_id', 'comment']
         }
       }
     },
-    required: ['title', 'days']
+    required: ['title', 'spots']
   }
 }];
 
@@ -497,115 +479,82 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
 }
 
 // ─────────────────────────────────────────────
-// Demo itineraries (no API key needed for the 6 example prompts)
+// Demo proposals (no API key needed for the 6 example prompts)
+// 「こんなところどうですか?」というフラットなおすすめスポット
 // ─────────────────────────────────────────────
-const DEMO_ITINERARIES = {
+const DEMO_PROPOSALS = {
   "札幌に2泊3日で温泉とグルメを楽しみたい": {
-    title: "札幌2泊3日 — 温泉とグルメ満喫プラン",
-    summary: "札幌の街を満喫しつつ、定山渓温泉で湯ったり、サッポロビール園でジンギスカンも楽しめる王道プラン。",
-    days: [
-      { day: 1, theme: "札幌街歩きとビール園", spots: [
-        { spot_id: "sapporo-clock-tower", time: "午前", comment: "札幌のシンボル。明治の建造物で写真映えも◎" },
-        { spot_id: "odori-park", time: "昼", comment: "公園のスタンドでお昼ご飯。テレビ塔と一緒に撮影。" },
-        { spot_id: "sapporo-tv-tower", time: "午後", comment: "展望台から札幌の街を一望。" },
-        { spot_id: "sapporo-beer", time: "夜", comment: "サッポロビール園で名物ジンギスカンと出来立てビール。" }
-      ]},
-      { day: 2, theme: "定山渓温泉で湯ったり", spots: [
-        { spot_id: "jozankei-onsen", time: "終日", comment: "札幌からバスで70分。渓谷美と温泉で癒される一日。" }
-      ]},
-      { day: 3, theme: "札幌郊外の名所", spots: [
-        { spot_id: "hokkaido-shrine", time: "午前", comment: "札幌の総鎮守。緑豊かな円山公園内に。" },
-        { spot_id: "maruyama-zoo", time: "昼", comment: "ホッキョクグマやレッサーパンダに出会える。" },
-        { spot_id: "shiroi-koibito-park", time: "午後", comment: "白い恋人の工場見学+お菓子作り体験で旅の締めくくり。" }
-      ]}
+    title: "札幌でおすすめの温泉・グルメスポット",
+    intro: "札幌の街遊びから定山渓の温泉、ジンギスカンまで楽しめるラインナップです。気になるものをプランに追加してみてください。",
+    spots: [
+      { spot_id: "sapporo-clock-tower", comment: "札幌のシンボル。明治の建造物で写真映えも◎" },
+      { spot_id: "odori-park",          comment: "テレビ塔から眺める噴水と緑。市内中心の休憩スポット。" },
+      { spot_id: "sapporo-tv-tower",    comment: "展望台から札幌の街を一望。夜景もきれい。" },
+      { spot_id: "sapporo-beer",        comment: "サッポロビール園で名物ジンギスカンと出来立てビール。" },
+      { spot_id: "jozankei-onsen",      comment: "札幌からバスで70分。渓谷美と温泉で癒される名湯。" },
+      { spot_id: "hokkaido-shrine",     comment: "札幌の総鎮守。緑豊かな円山公園内に。" },
+      { spot_id: "maruyama-zoo",        comment: "ホッキョクグマやレッサーパンダに出会える人気動物園。" },
+      { spot_id: "shiroi-koibito-park", comment: "白い恋人の工場見学とお菓子作り体験ができるテーマパーク。" }
     ]
   },
   "知床と網走で大自然を満喫する3泊プランを組みたい": {
-    title: "知床・網走3泊4日 — 大自然満喫プラン",
-    summary: "世界自然遺産・知床から流氷の街・網走、神秘の湖・摩周湖まで道東の絶景を巡ります。",
-    days: [
-      { day: 1, theme: "知床到着&五湖散策", spots: [
-        { spot_id: "shiretoko", time: "終日", comment: "世界自然遺産。ウトロ温泉に宿泊。" },
-        { spot_id: "shiretoko-goko", time: "午後", comment: "原生林の中に点在する五つの湖。高架木道から知床連山を望む。" }
-      ]},
-      { day: 2, theme: "知床の絶景", spots: [
-        { spot_id: "oshinkoshin-falls", time: "午前", comment: "日本の滝百選。二筋に分かれて流れる姿が美しい。" },
-        { spot_id: "shiretoko", time: "午後", comment: "知床クルーズで野生動物観察 (ヒグマやイルカに出会えることも)。" }
-      ]},
-      { day: 3, theme: "網走移動&流氷", spots: [
-        { spot_id: "abashiri-drift-ice", time: "午前", comment: "冬の風物詩。流氷砕氷船「おーろら」で大自然の神秘を体験。" },
-        { spot_id: "abashiri-prison", time: "午後", comment: "明治時代の監獄を移築復元した野外博物館。" }
-      ]},
-      { day: 4, theme: "神秘の湖を巡る", spots: [
-        { spot_id: "lake-mashu", time: "午前", comment: "世界屈指の透明度を誇る神秘の湖。「霧の摩周湖」の幻想的な景色。" },
-        { spot_id: "lake-akan", time: "午後", comment: "マリモの生息地。アイヌコタンの文化体験も。" }
-      ]}
+    title: "道東 大自然と神秘の絶景スポット",
+    intro: "世界自然遺産の知床から流氷の網走、神秘の湖まで。道東の自然をたっぷり楽しめる候補です。",
+    spots: [
+      { spot_id: "shiretoko",         comment: "世界自然遺産。クルーズで野生動物に出会えることも。" },
+      { spot_id: "shiretoko-goko",    comment: "原生林の中に点在する五つの湖。高架木道から知床連山を望む。" },
+      { spot_id: "oshinkoshin-falls", comment: "日本の滝百選。二筋に分かれて流れる姿が美しい。" },
+      { spot_id: "abashiri-drift-ice", comment: "冬の風物詩。流氷砕氷船「おーろら」で大自然の神秘を体験。" },
+      { spot_id: "abashiri-prison",   comment: "明治時代の監獄を移築復元した野外博物館。" },
+      { spot_id: "lake-mashu",        comment: "世界屈指の透明度を誇る神秘の湖。「霧の摩周湖」の幻想的な景色。" },
+      { spot_id: "lake-akan",         comment: "マリモの生息地。アイヌコタンの文化体験も。" }
     ]
   },
   "家族で行ける札幌・小樽周辺のおすすめスポットを教えて": {
-    title: "家族で札幌・小樽 1泊2日",
-    summary: "子連れでも楽しめる動物園や工場見学、レトロな街並み散策プラン。",
-    days: [
-      { day: 1, theme: "札幌で動物と工場見学", spots: [
-        { spot_id: "maruyama-zoo", time: "午前", comment: "子供に大人気の動物園。ホッキョクグマの泳ぐ姿は必見。" },
-        { spot_id: "shiroi-koibito-park", time: "午後", comment: "お菓子作り体験ができるテーマパーク。お土産購入も。" }
-      ]},
-      { day: 2, theme: "小樽でレトロ散策", spots: [
-        { spot_id: "otaru-canal", time: "午前", comment: "レトロな倉庫群とガス灯が美しい運河。クルーズも楽しめる。" },
-        { spot_id: "otaru-music-box", time: "昼", comment: "世界中のオルゴールが並ぶ夢の空間。蒸気時計も必見。" },
-        { spot_id: "yoichi-distillery", time: "午後", comment: "ニッカウヰスキー余市蒸溜所見学。" }
-      ]}
+    title: "家族で楽しめる札幌・小樽スポット",
+    intro: "子連れでも楽しめる動物園や工場見学、レトロな街並み散策の候補です。",
+    spots: [
+      { spot_id: "maruyama-zoo",        comment: "子供に大人気の動物園。ホッキョクグマの泳ぐ姿は必見。" },
+      { spot_id: "shiroi-koibito-park", comment: "お菓子作り体験ができるテーマパーク。お土産購入も。" },
+      { spot_id: "otaru-canal",         comment: "レトロな倉庫群とガス灯が美しい運河。クルーズも楽しめる。" },
+      { spot_id: "otaru-music-box",     comment: "世界中のオルゴールが並ぶ夢の空間。蒸気時計も必見。" },
+      { spot_id: "yoichi-distillery",   comment: "ニッカウヰスキー余市蒸溜所見学。大人向けに。" },
+      { spot_id: "sapporo-tv-tower",    comment: "展望台から札幌を一望。子供も大喜び。" }
     ]
   },
   "冬の北海道で雪まつりとスキーリゾートを巡りたい": {
-    title: "冬の北海道3泊4日 — 雪まつり&スキー",
-    summary: "札幌雪まつりから世界トップクラスのパウダースノー・ニセコ、温泉天国・登別まで。",
-    days: [
-      { day: 1, theme: "札幌雪まつり満喫", spots: [
-        { spot_id: "sapporo-snow-festival", time: "午後〜夜", comment: "2月の世界的祭典。巨大雪像のライトアップは圧巻。" },
-        { spot_id: "odori-park", time: "夜", comment: "メイン会場。屋台グルメも豊富。" }
-      ]},
-      { day: 2, theme: "ニセコへ移動&スキー", spots: [
-        { spot_id: "niseko", time: "終日", comment: "世界有数のパウダースノー。アクティビティ豊富で滞在を楽しめる。" }
-      ]},
-      { day: 3, theme: "登別温泉で湯治", spots: [
-        { spot_id: "noboribetsu-onsen", time: "終日", comment: "9種類もの泉質を誇る日本屈指の温泉郷。" },
-        { spot_id: "jigokudani", time: "午後", comment: "登別の象徴。雪景色と湯けむりが幻想的。" }
-      ]},
-      { day: 4, theme: "札幌へ戻る", spots: [
-        { spot_id: "sapporo-clock-tower", time: "午前", comment: "札幌のシンボルを訪れて旅の締めくくり。" }
-      ]}
+    title: "冬の北海道 雪まつり&スキースポット",
+    intro: "札幌雪まつりからニセコのパウダースノー、温泉天国・登別まで。冬ならではの候補です。",
+    spots: [
+      { spot_id: "sapporo-snow-festival", comment: "2月の世界的祭典。巨大雪像のライトアップは圧巻。" },
+      { spot_id: "odori-park",            comment: "雪まつりメイン会場。屋台グルメも豊富。" },
+      { spot_id: "niseko",                comment: "世界有数のパウダースノー。アクティビティ豊富で滞在を楽しめる。" },
+      { spot_id: "noboribetsu-onsen",     comment: "9種類もの泉質を誇る日本屈指の温泉郷。" },
+      { spot_id: "jigokudani",            comment: "登別の象徴。雪景色と湯けむりが幻想的。" },
+      { spot_id: "sapporo-clock-tower",   comment: "札幌のシンボル。冬の雪化粧も絵になる。" }
     ]
   },
   "美瑛と富良野の花と景色を満喫する1泊2日": {
-    title: "美瑛・富良野1泊2日 — 花と景色の旅",
-    summary: "ラベンダーの紫の絨毯から青い池の神秘的な絶景まで、美瑛富良野の名所を巡ります。",
-    days: [
-      { day: 1, theme: "富良野の花畑", spots: [
-        { spot_id: "furano-lavender", time: "午前", comment: "ラベンダー畑の代表格。7月が見頃。" },
-        { spot_id: "furano", time: "昼", comment: "ドラマ「北の国から」の舞台。チーズ工房やワインも。" }
-      ]},
-      { day: 2, theme: "美瑛の絶景", spots: [
-        { spot_id: "biei-blue-pond", time: "午前", comment: "コバルトブルーに輝く幻想的な池。Apple Mac壁紙の名所。" },
-        { spot_id: "biei-patchwork", time: "昼", comment: "色とりどりの畑が織りなす丘陵。CMの木々も。" },
-        { spot_id: "shirahige-falls", time: "午後", comment: "岩の隙間から湧き出るブルーの水。青い池の上流。" }
-      ]}
+    title: "美瑛・富良野 花と絶景スポット",
+    intro: "ラベンダーから青い池まで、美瑛富良野の名所を集めました。",
+    spots: [
+      { spot_id: "furano-lavender",  comment: "ラベンダー畑の代表格。7月が見頃。" },
+      { spot_id: "furano",           comment: "ドラマ「北の国から」の舞台。チーズ工房やワインも。" },
+      { spot_id: "biei-blue-pond",   comment: "コバルトブルーに輝く幻想的な池。Apple Mac壁紙の名所。" },
+      { spot_id: "biei-patchwork",   comment: "色とりどりの畑が織りなす丘陵。CMの木々も。" },
+      { spot_id: "shirahige-falls",  comment: "岩の隙間から湧き出るブルーの水。青い池の上流。" }
     ]
   },
   "函館の夜景と歴史散策の1泊2日プラン": {
-    title: "函館1泊2日 — 夜景と歴史散策",
-    summary: "世界三大夜景の函館山、星形要塞の五稜郭、レトロな元町エリアを巡る王道プラン。",
-    days: [
-      { day: 1, theme: "歴史散策&夜景", spots: [
-        { spot_id: "goryokaku", time: "午前", comment: "星形の城郭が美しい特別史跡。タワーから全景を。" },
-        { spot_id: "motomachi", time: "午後", comment: "異国情緒あふれる坂の街。教会やレトロな洋館を巡る。" },
-        { spot_id: "kanemori-warehouse", time: "夕方", comment: "ベイエリアの赤レンガ倉庫群。ショッピングとカフェ。" },
-        { spot_id: "mt-hakodate", time: "夜", comment: "世界三大夜景。扇形の夜景は息をのむ美しさ。" }
-      ]},
-      { day: 2, theme: "朝市&大沼", spots: [
-        { spot_id: "hakodate-morning-market", time: "午前", comment: "新鮮な海鮮丼の朝食。イカ釣り体験も。" },
-        { spot_id: "onuma-park", time: "午後", comment: "駒ヶ岳を背景にした美しい湖沼群。" }
-      ]}
+    title: "函館 夜景&歴史散策スポット",
+    intro: "世界三大夜景、星形要塞、レトロな元町エリアなど函館の王道候補です。",
+    spots: [
+      { spot_id: "goryokaku",                comment: "星形の城郭が美しい特別史跡。タワーから全景を。" },
+      { spot_id: "motomachi",                comment: "異国情緒あふれる坂の街。教会やレトロな洋館を巡る。" },
+      { spot_id: "kanemori-warehouse",       comment: "ベイエリアの赤レンガ倉庫群。ショッピングとカフェ。" },
+      { spot_id: "mt-hakodate",              comment: "世界三大夜景。扇形の夜景は息をのむ美しさ。" },
+      { spot_id: "hakodate-morning-market",  comment: "新鮮な海鮮丼の朝食。イカ釣り体験も。" },
+      { spot_id: "onuma-park",               comment: "駒ヶ岳を背景にした美しい湖沼群。" }
     ]
   }
 };
@@ -622,14 +571,15 @@ async function runDemoFlow(prompt, demo) {
   await sleep(700);
   typing.remove();
 
-  addBotMessage('ご希望に合わせて旅程をご提案します。');
+  addBotMessage('こんなところはいかがでしょうか?');
   await sleep(400);
-  renderItinerary(demo);
+  renderProposal(demo);
   await sleep(500);
 
   const closing = addBotMessage('');
   closing.querySelector('.chat-bubble').innerHTML = `
-    上記がおすすめプランです。気になる点があれば、下のチャット欄からお知らせください。<br>
+    気になるスポットがあれば「＋ プランへ」ボタンで右の「あなたのプラン」に追加できます。<br>
+    日程は自分で自由に組み立て可能です。<br>
     <div class="bot-actions">
       <button type="button" class="chip" data-action="back-to-examples">← 別の例を見る</button>
     </div>
@@ -658,7 +608,7 @@ function wireExampleButton(btn) {
   btn.addEventListener('click', () => {
     const prompt = btn.dataset.prompt;
     if (!prompt) return;
-    const demo = DEMO_ITINERARIES[prompt];
+    const demo = DEMO_PROPOSALS[prompt];
     if (demo) runDemoFlow(prompt, demo);
     else sendUserMessage(prompt);
   });
@@ -726,51 +676,39 @@ function addErrorMessage(message, advice = '') {
 // ─────────────────────────────────────────────
 // Render an itinerary inline in the chat
 // ─────────────────────────────────────────────
-function renderItinerary(input) {
-  const { title, summary, days } = input;
-  const validDays = (days || []).filter(d => d.spots?.length);
-  if (!validDays.length) return null;
+function renderProposal(input) {
+  const { title, intro, spots } = input;
+  const validSpots = (spots || []).filter(s => SPOT_BY_ID[s.spot_id]);
+  if (!validSpots.length) return null;
 
-  // Collect all spot ids for map highlighting
-  const allIds = [];
-  validDays.forEach(d => d.spots.forEach(s => { if (s.spot_id) allIds.push(s.spot_id); }));
-
+  const allIds = validSpots.map(s => s.spot_id);
   state.highlightedSpotIds = new Set(allIds);
   refreshHighlights();
   flyToSpots(allIds);
 
   const thread = $('#chat-thread');
   const wrapper = document.createElement('div');
-  wrapper.className = 'itinerary-card';
+  wrapper.className = 'proposal-card';
 
   let html = '';
-  if (title) html += `<h2 class="itinerary-title">${escapeHtml(title)}</h2>`;
-  if (summary) html += `<p class="itinerary-summary">${escapeHtml(summary)}</p>`;
+  if (title) html += `<h2 class="proposal-title">${escapeHtml(title)}</h2>`;
+  if (intro) html += `<p class="proposal-intro">${escapeHtml(intro)}</p>`;
 
-  html += `<button type="button" class="itinerary-import-btn" data-import-itinerary>
-    ✓ このプランをまるごと採用
-  </button>`;
+  html += `<div class="proposal-actions">`;
+  html += `<button type="button" class="proposal-bulk-btn" data-add-all>＋ 全部プランに追加</button>`;
+  html += `</div>`;
 
-  validDays.forEach(day => {
-    html += `<div class="itinerary-day">`;
-    html += `<div class="itinerary-day-head">`;
-    html += `<span class="itinerary-day-num">DAY ${day.day || '?'}</span>`;
-    if (day.theme) html += `<span class="itinerary-day-theme">${escapeHtml(day.theme)}</span>`;
-    html += `</div>`;
-    html += `<div class="itinerary-spots">`;
-    day.spots.forEach(s => {
-      const spot = SPOT_BY_ID[s.spot_id];
-      if (!spot) return;
-      html += renderSpotCard(spot, s);
-    });
-    html += `</div></div>`;
+  html += `<div class="proposal-spots">`;
+  validSpots.forEach(s => {
+    const spot = SPOT_BY_ID[s.spot_id];
+    html += renderSpotCard(spot, s);
   });
+  html += `</div>`;
 
   wrapper.innerHTML = html;
   thread.appendChild(wrapper);
   thread.scrollTop = thread.scrollHeight;
 
-  // Wire up "show on map" buttons in the itinerary
   wrapper.querySelectorAll('[data-spot-pan]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.spotPan;
@@ -782,7 +720,6 @@ function renderItinerary(input) {
     });
   });
 
-  // Wire up "+ 候補に追加" buttons
   wrapper.querySelectorAll('[data-plan-add]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.planAdd;
@@ -791,14 +728,15 @@ function renderItinerary(input) {
     });
   });
 
-  // "プランをまるごと採用" button
-  const importBtn = wrapper.querySelector('[data-import-itinerary]');
-  if (importBtn) {
-    importBtn.addEventListener('click', () => {
-      applyItineraryToPlan(input);
-      importBtn.classList.add('is-done');
-      importBtn.textContent = '✓ プランに採用しました';
-      importBtn.disabled = true;
+  const bulkBtn = wrapper.querySelector('[data-add-all]');
+  if (bulkBtn) {
+    bulkBtn.addEventListener('click', () => {
+      validSpots.forEach(s => {
+        if (!isInPlan(s.spot_id)) addToPlan(s.spot_id, 0);
+      });
+      bulkBtn.classList.add('is-done');
+      bulkBtn.textContent = '✓ 全部追加しました';
+      bulkBtn.disabled = true;
     });
   }
 
@@ -917,10 +855,10 @@ async function runAssistantTurn(depth) {
 
     // Render any tool calls
     const toolUse = finalMessage.content.find(b => b.type === 'tool_use');
-    if (toolUse && toolUse.name === 'propose_itinerary') {
-      const rendered = renderItinerary(toolUse.input || {});
+    if (toolUse && toolUse.name === 'propose_spots') {
+      const rendered = renderProposal(toolUse.input || {});
       const okText = rendered
-        ? `旅程(${(toolUse.input?.days || []).reduce((n, d) => n + (d.spots?.length || 0), 0)}スポット)を表示しました。ユーザーの反応を待ってください。`
+        ? `${(toolUse.input?.spots || []).length} 個のスポットを提案表示しました。ユーザーが自分のプランに追加するのを待ってください。`
         : 'スポットIDが認識できなかったため、表示できませんでした。再提案してください。';
       state.apiMessages.push({
         role: 'user',
@@ -1067,10 +1005,8 @@ function renderPlannerDay(day, dayIdx) {
 
 function renderPlannerSpot(spot, orderIdx, dayIdx) {
   const daysCount = state.plan.days.length;
-  let opts = '';
-  for (let i = 0; i < daysCount; i++) {
-    opts += `<option value="${i}"${i === dayIdx ? ' selected' : ''}>D${i + 1}</option>`;
-  }
+  const canMovePrev = dayIdx > 0;
+  const canMoveNext = dayIdx < daysCount - 1;
   return `
     <div class="planner-spot" data-spot="${spot.id}">
       <span class="planner-spot-order">${orderIdx + 1}</span>
@@ -1079,7 +1015,8 @@ function renderPlannerSpot(spot, orderIdx, dayIdx) {
         <div class="planner-spot-area">📍 ${escapeHtml(spot.area)}</div>
       </div>
       <div class="planner-spot-actions">
-        <select data-move-spot="${spot.id}" aria-label="日を変える">${opts}</select>
+        <button type="button" class="planner-slide-btn" data-slide-spot="${spot.id}" data-direction="prev" ${canMovePrev ? '' : 'disabled'} title="前の日へ" aria-label="前の日へ">◀</button>
+        <button type="button" class="planner-slide-btn" data-slide-spot="${spot.id}" data-direction="next" data-add-day-if-needed="true" title="次の日へ" aria-label="次の日へ">▶</button>
         <button type="button" class="planner-icon-btn" data-locate-spot="${spot.id}" title="マップで見る" aria-label="マップで見る">📍</button>
         <button type="button" class="planner-icon-btn danger" data-remove-spot="${spot.id}" title="削除" aria-label="削除">×</button>
       </div>
@@ -1097,9 +1034,19 @@ function wirePlannerEvents() {
   $$('#planner-body [data-remove-spot]').forEach(btn => {
     btn.addEventListener('click', () => removeFromPlan(btn.dataset.removeSpot));
   });
-  $$('#planner-body [data-move-spot]').forEach(sel => {
-    sel.addEventListener('change', () => {
-      moveToDay(sel.dataset.moveSpot, Number(sel.value));
+  $$('#planner-body [data-slide-spot]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.slideSpot;
+      const dir = btn.dataset.direction; // 'prev' | 'next'
+      const fromIdx = findSpotDayIndex(id);
+      if (fromIdx === -1) return;
+      let toIdx = dir === 'prev' ? fromIdx - 1 : fromIdx + 1;
+      if (toIdx < 0) return;
+      // Auto-add a new day if moving past the last day
+      if (toIdx >= state.plan.days.length) {
+        state.plan.days.push({ id: newDayId(), spotIds: [] });
+      }
+      moveToDay(id, toIdx);
     });
   });
   $$('#planner-body [data-locate-spot]').forEach(btn => {

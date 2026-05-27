@@ -3542,33 +3542,106 @@ body.drawer-open .planner-drawer {
   letter-spacing: -0.02em;
 }
 
-/* "このプランを採用" button on AI-proposed itinerary */
-.itinerary-import-btn {
+/* ============================================================
+   AI Proposal card (flat list — no day structure)
+   ============================================================ */
+.proposal-card {
+  background: var(--milk);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 1.2rem 1.1rem 1.3rem;
+  box-shadow: var(--pop);
+  margin-left: 3rem;
+  max-width: 100%;
+}
+@media (max-width: 720px) {
+  .proposal-card { margin-left: 0; padding: 0.9rem; }
+}
+
+.proposal-title {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.25rem;
+  color: var(--ink);
+  margin: 0 0 0.4rem;
+  line-height: 1.35;
+}
+.proposal-intro {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.88rem;
+  color: var(--ink-light);
+  line-height: 1.8;
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 2px dashed var(--paper-deep);
+}
+.proposal-actions {
+  margin-bottom: 0.85rem;
+}
+.proposal-bulk-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
   background: var(--c-green);
   color: var(--paper);
   border: 2px solid var(--ink);
   border-radius: 16px;
   padding: 0.3rem 0.85rem;
   font-family: "Klee One", sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 2px 2px 0 var(--ink);
   transition: all .15s;
-  margin-bottom: 0.8rem;
 }
-.itinerary-import-btn:hover {
+.proposal-bulk-btn:hover {
   background: var(--c-yellow);
   color: var(--ink);
   transform: translate(1px, 1px);
   box-shadow: 1px 1px 0 var(--ink);
 }
-.itinerary-import-btn.is-done {
+.proposal-bulk-btn.is-done {
   background: var(--paper);
   color: var(--ink-light);
   cursor: default;
+  transform: none;
+}
+.proposal-spots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.65rem;
+}
+
+/* ============================================================
+   Planner slide buttons (◀ ▶)
+   ============================================================ */
+.planner-slide-btn {
+  background: var(--c-yellow);
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-family: "Yusei Magic", sans-serif;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 1px 1px 0 var(--ink);
+  transition: all .15s;
+  font-weight: 700;
+  line-height: 1;
+}
+.planner-slide-btn:hover:not(:disabled) {
+  background: var(--c-red);
+  color: var(--paper);
+  transform: translate(1px, 1px);
+  box-shadow: 0 0 0 var(--ink);
+}
+.planner-slide-btn:disabled {
+  background: var(--paper-warm);
+  color: var(--ink-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.45;
 }
 
