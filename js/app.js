@@ -19,9 +19,13 @@ const REGION_COLORS = {
   dohoku: '#4A8DC0',
 };
 
+// Cycle palette for days in the user's plan
+const DAY_COLORS = ['#E84A38', '#F09040', '#6FAE52', '#4A8DC0', '#9C6BCC', '#D8A24A'];
+
 const SPOT_BY_ID = Object.fromEntries(SPOTS.map(s => [s.id, s]));
 
 const STORAGE_KEY = 'anthropic_api_key';
+const PLAN_STORAGE_KEY = 'hokkaido_user_plan_v1';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MAX_TOOL_RECURSION = 5;
 const API_TIMEOUT_MS = 90_000;
@@ -33,6 +37,7 @@ const state = {
   apiMessages: [],
   isStreaming: false,
   highlightedSpotIds: new Set(),
+  plan: { days: [] },
 };
 
 // ─────────────────────────────────────────────
@@ -52,9 +57,118 @@ function setApiKey(k) { memoryKey = k; return safeStorageSet(STORAGE_KEY, k); }
 function clearApiKey() { memoryKey = ''; safeStorageRemove(STORAGE_KEY); }
 
 // ─────────────────────────────────────────────
+// User Plan (curated by clicking "+ 候補に追加")
+// ─────────────────────────────────────────────
+function newDayId() {
+  return 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+function defaultPlan() {
+  return { days: [
+    { id: newDayId(), spotIds: [] },
+    { id: newDayId(), spotIds: [] },
+    { id: newDayId(), spotIds: [] },
+  ]};
+}
+function loadPlan() {
+  const raw = safeStorageGet(PLAN_STORAGE_KEY);
+  if (!raw) { state.plan = defaultPlan(); return; }
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.days)) throw new Error('invalid shape');
+    state.plan = {
+      days: parsed.days.map(d => ({
+        id: typeof d.id === 'string' ? d.id : newDayId(),
+        spotIds: Array.isArray(d.spotIds) ? d.spotIds.filter(id => SPOT_BY_ID[id]) : [],
+      })),
+    };
+    if (state.plan.days.length === 0) state.plan = defaultPlan();
+  } catch (_) {
+    state.plan = defaultPlan();
+  }
+}
+function savePlan() {
+  try { localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(state.plan)); } catch (_) {}
+}
+function planTotalCount() {
+  return state.plan.days.reduce((n, d) => n + d.spotIds.length, 0);
+}
+function isInPlan(spotId) {
+  return state.plan.days.some(d => d.spotIds.includes(spotId));
+}
+function findSpotDayIndex(spotId) {
+  return state.plan.days.findIndex(d => d.spotIds.includes(spotId));
+}
+function addToPlan(spotId, dayIndex = 0) {
+  if (!SPOT_BY_ID[spotId]) return;
+  if (isInPlan(spotId)) return;
+  while (state.plan.days.length <= dayIndex) {
+    state.plan.days.push({ id: newDayId(), spotIds: [] });
+  }
+  state.plan.days[dayIndex].spotIds.push(spotId);
+  onPlanChanged();
+}
+function removeFromPlan(spotId) {
+  const idx = findSpotDayIndex(spotId);
+  if (idx === -1) return;
+  state.plan.days[idx].spotIds = state.plan.days[idx].spotIds.filter(id => id !== spotId);
+  onPlanChanged();
+}
+function moveToDay(spotId, toDayIndex) {
+  const fromIdx = findSpotDayIndex(spotId);
+  if (fromIdx === -1 || fromIdx === toDayIndex) return;
+  while (state.plan.days.length <= toDayIndex) {
+    state.plan.days.push({ id: newDayId(), spotIds: [] });
+  }
+  state.plan.days[fromIdx].spotIds = state.plan.days[fromIdx].spotIds.filter(id => id !== spotId);
+  if (!state.plan.days[toDayIndex].spotIds.includes(spotId)) {
+    state.plan.days[toDayIndex].spotIds.push(spotId);
+  }
+  onPlanChanged();
+}
+function addDay() {
+  state.plan.days.push({ id: newDayId(), spotIds: [] });
+  onPlanChanged();
+}
+function removeDay(dayIndex) {
+  if (state.plan.days.length <= 1) return;
+  state.plan.days.splice(dayIndex, 1);
+  onPlanChanged();
+}
+function clearPlan() {
+  state.plan = defaultPlan();
+  onPlanChanged();
+}
+function applyItineraryToPlan(input) {
+  const validDays = (input?.days || []).filter(d => d.spots?.length);
+  if (!validDays.length) return;
+  state.plan = {
+    days: validDays.map(d => ({
+      id: newDayId(),
+      spotIds: d.spots.map(s => s.spot_id).filter(id => SPOT_BY_ID[id]),
+    })),
+  };
+  onPlanChanged();
+  openPlannerDrawer();
+}
+function onPlanChanged() {
+  savePlan();
+  renderPlannerDrawer();
+  renderPlanOnMap();
+  refreshPlanAddButtons();
+  updatePlanCount();
+}
+function updatePlanCount() {
+  const el = $('#plan-count');
+  if (!el) return;
+  const n = planTotalCount();
+  el.textContent = n;
+  el.classList.toggle('is-empty', n === 0);
+}
+
+// ─────────────────────────────────────────────
 // Map (Leaflet)
 // ─────────────────────────────────────────────
-let map, markerLayer;
+let map, markerLayer, planLayer;
 const markerById = {};
 
 function initMap() {
@@ -70,7 +184,48 @@ function initMap() {
     attribution: '© OpenStreetMap'
   }).addTo(map);
   markerLayer = L.layerGroup().addTo(map);
+  planLayer = L.layerGroup().addTo(map);
   SPOTS.forEach(addMarker);
+  renderPlanOnMap();
+}
+
+function renderPlanOnMap() {
+  if (!planLayer || !map) return;
+  planLayer.clearLayers();
+  state.plan.days.forEach((day, dayIdx) => {
+    const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+    const coords = [];
+    day.spotIds.forEach((sid, orderIdx) => {
+      const spot = SPOT_BY_ID[sid];
+      if (!spot?.coords) return;
+      coords.push(spot.coords);
+      const icon = L.divIcon({
+        className: 'plan-pin',
+        html: `<span style="background:${color}">${orderIdx + 1}</span>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+      });
+      const marker = L.marker(spot.coords, { icon, zIndexOffset: 500 + dayIdx * 10 });
+      marker.bindPopup(`
+        <div class="map-popup">
+          <strong>DAY ${dayIdx + 1}-${orderIdx + 1} ${escapeHtml(spot.name)}</strong>
+          <p>${escapeHtml(spot.description)}</p>
+          <small>📍 ${escapeHtml(spot.area)}</small>
+        </div>
+      `);
+      planLayer.addLayer(marker);
+    });
+    if (coords.length >= 2) {
+      const line = L.polyline(coords, {
+        color,
+        weight: 3.5,
+        opacity: 0.85,
+        dashArray: '8, 6',
+        lineCap: 'round',
+      });
+      planLayer.addLayer(line);
+    }
+  });
 }
 
 function addMarker(spot) {
@@ -592,6 +747,10 @@ function renderItinerary(input) {
   if (title) html += `<h2 class="itinerary-title">${escapeHtml(title)}</h2>`;
   if (summary) html += `<p class="itinerary-summary">${escapeHtml(summary)}</p>`;
 
+  html += `<button type="button" class="itinerary-import-btn" data-import-itinerary>
+    ✓ このプランをまるごと採用
+  </button>`;
+
   validDays.forEach(day => {
     html += `<div class="itinerary-day">`;
     html += `<div class="itinerary-day-head">`;
@@ -623,6 +782,26 @@ function renderItinerary(input) {
     });
   });
 
+  // Wire up "+ 候補に追加" buttons
+  wrapper.querySelectorAll('[data-plan-add]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.planAdd;
+      if (isInPlan(id)) return;
+      addToPlan(id, 0);
+    });
+  });
+
+  // "プランをまるごと採用" button
+  const importBtn = wrapper.querySelector('[data-import-itinerary]');
+  if (importBtn) {
+    importBtn.addEventListener('click', () => {
+      applyItineraryToPlan(input);
+      importBtn.classList.add('is-done');
+      importBtn.textContent = '✓ プランに採用しました';
+      importBtn.disabled = true;
+    });
+  }
+
   return wrapper;
 }
 
@@ -648,6 +827,11 @@ function renderSpotCard(spot, suggestion = {}) {
          ${getIcon(spot.icon)}
        </div>`;
 
+  const inPlan = isInPlan(spot.id);
+  const addBtn = inPlan
+    ? `<button type="button" class="plan-add-btn in-plan" disabled>✓ 追加済</button>`
+    : `<button type="button" class="plan-add-btn" data-plan-add="${spot.id}">＋ プランへ</button>`;
+
   return `
     <article class="spot-listing ${hasVideo ? 'has-video' : 'no-video'}" data-spot="${spot.id}">
       ${mediaHTML}
@@ -663,16 +847,25 @@ function renderSpotCard(spot, suggestion = {}) {
         ${suggestion.comment
           ? `<p class="spot-listing-comment">💡 ${escapeHtml(suggestion.comment)}</p>`
           : ''}
-        <p class="spot-listing-desc">${escapeHtml(spot.description)}</p>
         <div class="spot-listing-foot">
-          <small>🚆 ${escapeHtml(spot.accessTime || '')}</small>
-          <button type="button" class="spot-pan-btn" data-spot-pan="${spot.id}">
-            マップで見る →
-          </button>
+          <button type="button" class="spot-pan-btn" data-spot-pan="${spot.id}">📍 マップ</button>
+          ${addBtn}
         </div>
       </div>
     </article>
   `;
+}
+
+function refreshPlanAddButtons() {
+  $$('[data-plan-add]').forEach(btn => {
+    const id = btn.dataset.planAdd;
+    if (isInPlan(id)) {
+      btn.classList.add('in-plan');
+      btn.disabled = true;
+      btn.textContent = '✓ 追加済';
+      btn.removeAttribute('data-plan-add');
+    }
+  });
 }
 
 // ─────────────────────────────────────────────
@@ -800,10 +993,134 @@ function toggleMap() {
 }
 
 // ─────────────────────────────────────────────
+// Planner Drawer
+// ─────────────────────────────────────────────
+function openPlannerDrawer() {
+  document.body.classList.add('drawer-open');
+  $('#planner-drawer')?.setAttribute('aria-hidden', 'false');
+  $('#planner-overlay')?.setAttribute('aria-hidden', 'false');
+}
+function closePlannerDrawer() {
+  document.body.classList.remove('drawer-open');
+  $('#planner-drawer')?.setAttribute('aria-hidden', 'true');
+  $('#planner-overlay')?.setAttribute('aria-hidden', 'true');
+}
+function togglePlannerDrawer() {
+  if (document.body.classList.contains('drawer-open')) closePlannerDrawer();
+  else openPlannerDrawer();
+}
+
+function renderPlannerDrawer() {
+  const body = $('#planner-body');
+  if (!body) return;
+  const total = planTotalCount();
+  if (total === 0) {
+    body.innerHTML = `
+      <div class="planner-empty">
+        <strong>まだ何も追加されていません</strong>
+        AIの提案カードや「＋ プランへ」ボタンで<br>気になるスポットを追加してください。
+      </div>
+    `;
+    // Even when empty, still allow add-day/clear etc.
+    // Render empty days too so user can plan from scratch
+    let dayHtml = '';
+    state.plan.days.forEach((day, dayIdx) => {
+      dayHtml += renderPlannerDay(day, dayIdx);
+    });
+    body.innerHTML += dayHtml;
+  } else {
+    let html = '';
+    state.plan.days.forEach((day, dayIdx) => {
+      html += renderPlannerDay(day, dayIdx);
+    });
+    body.innerHTML = html;
+  }
+  wirePlannerEvents();
+}
+
+function renderPlannerDay(day, dayIdx) {
+  const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+  let html = `<div class="planner-day" data-day-idx="${dayIdx}">`;
+  html += `<div class="planner-day-head">`;
+  html += `<span class="planner-day-num" style="background:${color}">DAY ${dayIdx + 1}</span>`;
+  html += `<div class="planner-day-actions">`;
+  if (state.plan.days.length > 1) {
+    html += `<button type="button" class="planner-icon-btn danger" data-remove-day="${dayIdx}" title="この日を削除" aria-label="この日を削除">×</button>`;
+  }
+  html += `</div></div>`;
+
+  if (day.spotIds.length === 0) {
+    html += `<div class="planner-spot-empty">スポットを追加してください</div>`;
+  } else {
+    html += `<div class="planner-spots">`;
+    day.spotIds.forEach((sid, orderIdx) => {
+      const spot = SPOT_BY_ID[sid];
+      if (!spot) return;
+      html += renderPlannerSpot(spot, orderIdx, dayIdx);
+    });
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+function renderPlannerSpot(spot, orderIdx, dayIdx) {
+  const daysCount = state.plan.days.length;
+  let opts = '';
+  for (let i = 0; i < daysCount; i++) {
+    opts += `<option value="${i}"${i === dayIdx ? ' selected' : ''}>D${i + 1}</option>`;
+  }
+  return `
+    <div class="planner-spot" data-spot="${spot.id}">
+      <span class="planner-spot-order">${orderIdx + 1}</span>
+      <div class="planner-spot-info">
+        <div class="planner-spot-name">${escapeHtml(spot.name)}</div>
+        <div class="planner-spot-area">📍 ${escapeHtml(spot.area)}</div>
+      </div>
+      <div class="planner-spot-actions">
+        <select data-move-spot="${spot.id}" aria-label="日を変える">${opts}</select>
+        <button type="button" class="planner-icon-btn" data-locate-spot="${spot.id}" title="マップで見る" aria-label="マップで見る">📍</button>
+        <button type="button" class="planner-icon-btn danger" data-remove-spot="${spot.id}" title="削除" aria-label="削除">×</button>
+      </div>
+    </div>
+  `;
+}
+
+function wirePlannerEvents() {
+  $$('#planner-body [data-remove-day]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.removeDay);
+      removeDay(idx);
+    });
+  });
+  $$('#planner-body [data-remove-spot]').forEach(btn => {
+    btn.addEventListener('click', () => removeFromPlan(btn.dataset.removeSpot));
+  });
+  $$('#planner-body [data-move-spot]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      moveToDay(sel.dataset.moveSpot, Number(sel.value));
+    });
+  });
+  $$('#planner-body [data-locate-spot]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.locateSpot;
+      const spot = SPOT_BY_ID[id];
+      if (spot?.coords && map) {
+        map.flyTo(spot.coords, 12, { duration: 0.6 });
+      }
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
 // Boot
 // ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  loadPlan();
   initMap();
+  renderPlannerDrawer();
+  updatePlanCount();
 
   // Chat form
   $('#chat-form')?.addEventListener('submit', handleSubmit);
@@ -824,6 +1141,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Map toggle
   $('#toggle-map')?.addEventListener('click', toggleMap);
+
+  // Planner drawer wiring
+  $('#plan-toggle')?.addEventListener('click', togglePlannerDrawer);
+  $('#planner-close')?.addEventListener('click', closePlannerDrawer);
+  $('#planner-overlay')?.addEventListener('click', closePlannerDrawer);
+  $('#planner-add-day')?.addEventListener('click', addDay);
+  $('#planner-clear')?.addEventListener('click', () => {
+    if (planTotalCount() === 0 || confirm('プランを全部消してよろしいですか?')) clearPlan();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
+      closePlannerDrawer();
+    }
+  });
 
   // Trigger map resize after layout settles
   setTimeout(() => map?.invalidateSize(), 600);
