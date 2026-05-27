@@ -1,0 +1,10 @@
+name = "hokkaido-anthropic-proxy"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Allow Anthropic streaming responses (default; explicit for clarity)
+compatibility_flags = []
+
+# Optional: tighten CORS allowed origins later via the dashboard or wrangler.toml [vars].
+# [vars]
+# ALLOWED_ORIGINS = "https://playmark0227-svg.github.io,https://your-custom-domain.com"

@@ -24,11 +24,15 @@ const DAY_COLORS = ['#E84A38', '#F09040', '#6FAE52', '#4A8DC0', '#9C6BCC', '#D8A
 
 const SPOT_BY_ID = Object.fromEntries(SPOTS.map(s => [s.id, s]));
 
-const STORAGE_KEY = 'anthropic_api_key';
 const PLAN_STORAGE_KEY = 'hokkaido_user_plan_v1';
-const API_URL = 'https://api.anthropic.com/v1/messages';
 const MAX_TOOL_RECURSION = 5;
 const API_TIMEOUT_MS = 90_000;
+
+function getApiUrl() {
+  const proxyUrl = (window.ANTHROPIC_PROXY_URL || '').trim();
+  if (!proxyUrl) return '';
+  return proxyUrl.replace(/\/+$/, '') + '/v1/messages';
+}
 
 // ─────────────────────────────────────────────
 // State
@@ -41,20 +45,10 @@ const state = {
 };
 
 // ─────────────────────────────────────────────
-// API key (config.js > localStorage > memory)
+// Storage helpers (used by plan persistence)
 // ─────────────────────────────────────────────
-let memoryKey = '';
 function safeStorageGet(k) { try { return localStorage.getItem(k); } catch (_) { return null; } }
 function safeStorageSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (_) { return false; } }
-function safeStorageRemove(k) { try { localStorage.removeItem(k); } catch (_) {} }
-function getApiKey() {
-  if (typeof window.ANTHROPIC_API_KEY === 'string' && window.ANTHROPIC_API_KEY.trim()) {
-    return window.ANTHROPIC_API_KEY.trim();
-  }
-  return safeStorageGet(STORAGE_KEY) || memoryKey || '';
-}
-function setApiKey(k) { memoryKey = k; return safeStorageSet(STORAGE_KEY, k); }
-function clearApiKey() { memoryKey = ''; safeStorageRemove(STORAGE_KEY); }
 
 // ─────────────────────────────────────────────
 // User Plan (curated by clicking "+ 候補に追加")
@@ -371,21 +365,23 @@ const TOOLS = [{
 // Direct fetch to Anthropic API with SSE parse
 // ─────────────────────────────────────────────
 async function callClaudeStream({ system, tools, messages, onTextDelta }) {
-  const apiKey = getApiKey();
-  if (!apiKey) throw new Error('API キーが設定されていません');
+  const apiUrl = getApiUrl();
+  if (!apiUrl) {
+    const e = new Error('プロキシURLが設定されていません (js/config.js の ANTHROPIC_PROXY_URL)');
+    e.status = 0;
+    throw e;
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
   let response;
   try {
-    response = await fetch(API_URL, {
+    response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-7',
@@ -887,6 +883,7 @@ function handleApiError(err) {
   const msg = err?.message || String(err);
   let advice = '';
   if (err?.status === 401) advice = 'サイト側のAPIキーが無効化されている可能性があります。サイト管理者にお知らせください。';
+  else if (err?.status === 0) advice = 'プロキシ未設定です。worker/README.md を参照してデプロイしてください。';
   else if (err?.status === 403) advice = 'このキーには利用権限がありません。Anthropic Consoleでキーを確認してください。';
   else if (err?.status === 429) advice = 'レート制限/予算上限に達しました。少し時間を空けて再試行してください。';
   else if (err?.status === 400) advice = 'リクエストパラメータが不正です。開発者ツールのコンソールをご確認ください。';
