@@ -1602,10 +1602,12 @@ body.map-hidden .map-panel { display: none; }
 
 @media (max-width: 960px) {
   .chat-layout {
-    grid-template-rows: 32vh minmax(0, 1fr);
+    /* Stack vertically: Map (top) → Planner (middle) → Chat (bottom) */
+    grid-template-rows: 28vh minmax(160px, 30vh) minmax(0, 1fr);
     grid-template-columns: 1fr;
   }
   body.map-hidden .chat-layout {
+    grid-template-rows: minmax(160px, 30vh) minmax(0, 1fr);
     grid-template-columns: 1fr;
   }
 }
@@ -3265,21 +3267,42 @@ body.drawer-open .planner-overlay {
   min-height: 0;
 }
 
-/* Mobile: turn into right-side drawer */
+/* Mobile: inline panel between map and chat (no drawer) */
 @media (max-width: 960px) {
   .planner-drawer {
-    position: fixed;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: min(420px, 92vw);
-    box-shadow: -8px 0 0 var(--ink), -12px 0 20px rgba(0,0,0,0.15);
-    z-index: 999;
-    transform: translateX(100%);
-    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    border-left: none;
+    border-top: 3px solid var(--ink);
+    border-bottom: 3px solid var(--ink);
+    min-height: 0;
   }
-  body.drawer-open .planner-drawer {
-    transform: translateX(0);
+  .planner-overlay {
+    display: none !important;
+  }
+  .planner-close-btn {
+    display: none;
+  }
+  .plan-toggle-btn {
+    display: none; /* planner is always visible inline */
+  }
+  .planner-head {
+    padding: 0.55rem 0.8rem;
+  }
+  .planner-head h2 {
+    font-size: 1rem;
+  }
+  .planner-body {
+    padding: 0.6rem 0.7rem 0.7rem;
+  }
+  .planner-day {
+    padding: 0.55rem 0.65rem 0.65rem;
+    margin-bottom: 0.55rem;
+  }
+  .planner-foot {
+    padding: 0.5rem 0.7rem;
+  }
+  .planner-foot-btn {
+    font-size: 0.74rem;
+    padding: 0.35rem 0.5rem;
   }
 }
 
