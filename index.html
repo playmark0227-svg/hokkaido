@@ -28,7 +28,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <link rel="stylesheet" href="css/style.css?v=20260527i" />
+  <link rel="stylesheet" href="css/style.css?v=20260527j" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E" />
 
   <script type="application/ld+json">
@@ -180,8 +180,15 @@
         <!-- Rendered by JS -->
       </div>
       <div class="planner-foot">
-        <button type="button" id="planner-add-day" class="planner-foot-btn">＋ 日を追加</button>
-        <button type="button" id="planner-clear" class="planner-foot-btn danger">全クリア</button>
+        <div class="planner-foot-row planner-foot-primary">
+          <button type="button" id="planner-review" class="planner-foot-btn primary" title="AIに今のプランを講評してもらう">🧠 AIに講評</button>
+          <button type="button" id="planner-share" class="planner-foot-btn" title="共有リンクをコピー">🔗 共有</button>
+          <button type="button" id="planner-print" class="planner-foot-btn" title="印刷・PDF保存">🖨 印刷</button>
+        </div>
+        <div class="planner-foot-row">
+          <button type="button" id="planner-add-day" class="planner-foot-btn">＋ 日を追加</button>
+          <button type="button" id="planner-clear" class="planner-foot-btn danger">全クリア</button>
+        </div>
       </div>
     </aside>
 
@@ -190,9 +197,12 @@
   <!-- Backdrop only used on mobile when drawer is open -->
   <div class="planner-overlay" id="planner-overlay" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=20260527i"></script>
-  <script src="js/spots.js?v=20260527i"></script>
-  <script src="js/icons.js?v=20260527i"></script>
-  <script src="js/app.js?v=20260527i"></script>
+  <!-- Print-only area (populated on print) -->
+  <div id="print-area" aria-hidden="true"></div>
+
+  <script src="js/config.js?v=20260527j"></script>
+  <script src="js/spots.js?v=20260527j"></script>
+  <script src="js/icons.js?v=20260527j"></script>
+  <script src="js/app.js?v=20260527j"></script>
 </body>
 </html>

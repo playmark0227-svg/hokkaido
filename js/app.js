@@ -24,6 +24,60 @@ const DAY_COLORS = ['#E84A38', '#F09040', '#6FAE52', '#4A8DC0', '#9C6BCC', '#D8A
 
 const SPOT_BY_ID = Object.fromEntries(SPOTS.map(s => [s.id, s]));
 
+// ─────────────────────────────────────────────
+// Geo helpers — distance & rough drive-time estimates
+// Hokkaido is rural; ~45km/h average incl. roads/stops.
+// ─────────────────────────────────────────────
+const AVG_KMH = 45;
+function haversineKm(a, b) {
+  if (!a || !b) return 0;
+  const R = 6371;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(b[0] - a[0]);
+  const dLon = toRad(b[1] - a[1]);
+  const lat1 = toRad(a[0]);
+  const lat2 = toRad(b[0]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function estimateDriveMin(km) {
+  // Add ~15% for road winding vs straight line, then time at avg speed
+  return Math.round((km * 1.15) / AVG_KMH * 60);
+}
+function formatKm(km) {
+  if (km < 1) return Math.round(km * 1000) + 'm';
+  if (km < 10) return km.toFixed(1) + 'km';
+  return Math.round(km) + 'km';
+}
+function formatDuration(min) {
+  if (min < 1) return 'すぐ';
+  if (min < 60) return `約${min}分`;
+  const h = Math.floor(min / 60);
+  const m = Math.round(min / 5) * 5 % 60;
+  return m ? `約${h}時間${m}分` : `約${h}時間`;
+}
+// Legs between consecutive spots in a day. Index i = leg from spot i → i+1,
+// aligned with the full spotIds order (null when either coord is missing).
+function dayLegs(day) {
+  const legs = [];
+  for (let i = 1; i < day.spotIds.length; i++) {
+    const a = SPOT_BY_ID[day.spotIds[i - 1]]?.coords;
+    const b = SPOT_BY_ID[day.spotIds[i]]?.coords;
+    if (!a || !b) { legs.push(null); continue; }
+    const km = haversineKm(a, b);
+    legs.push({ km, min: estimateDriveMin(km) });
+  }
+  return legs;
+}
+function dayTotals(day) {
+  const legs = dayLegs(day);
+  return {
+    km: legs.reduce((s, l) => s + (l ? l.km : 0), 0),
+    min: legs.reduce((s, l) => s + (l ? l.min : 0), 0),
+    legs,
+  };
+}
+
 const PLAN_STORAGE_KEY = 'hokkaido_user_plan_v1';
 const MAX_TOOL_RECURSION = 5;
 const API_TIMEOUT_MS = 90_000;
@@ -108,18 +162,6 @@ function removeFromPlan(spotId) {
   state.plan.days[idx].spotIds = state.plan.days[idx].spotIds.filter(id => id !== spotId);
   onPlanChanged();
 }
-function moveToDay(spotId, toDayIndex) {
-  const fromIdx = findSpotDayIndex(spotId);
-  if (fromIdx === -1 || fromIdx === toDayIndex) return;
-  while (state.plan.days.length <= toDayIndex) {
-    state.plan.days.push({ id: newDayId(), spotIds: [] });
-  }
-  state.plan.days[fromIdx].spotIds = state.plan.days[fromIdx].spotIds.filter(id => id !== spotId);
-  if (!state.plan.days[toDayIndex].spotIds.includes(spotId)) {
-    state.plan.days[toDayIndex].spotIds.push(spotId);
-  }
-  onPlanChanged();
-}
 function addDay() {
   state.plan.days.push({ id: newDayId(), spotIds: [] });
   onPlanChanged();
@@ -133,6 +175,153 @@ function clearPlan() {
   state.plan = defaultPlan();
   onPlanChanged();
 }
+
+// ── Reorder: linear up/down across the whole multi-day sequence ──
+function spotPosition(spotId) {
+  for (let d = 0; d < state.plan.days.length; d++) {
+    const p = state.plan.days[d].spotIds.indexOf(spotId);
+    if (p !== -1) return { dayIdx: d, pos: p };
+  }
+  return null;
+}
+function moveSpotUp(spotId) {
+  const loc = spotPosition(spotId);
+  if (!loc) return;
+  const { dayIdx, pos } = loc;
+  const day = state.plan.days[dayIdx];
+  if (pos > 0) {
+    // swap within the same day
+    [day.spotIds[pos - 1], day.spotIds[pos]] = [day.spotIds[pos], day.spotIds[pos - 1]];
+  } else if (dayIdx > 0) {
+    // move to the end of the previous day
+    day.spotIds.splice(pos, 1);
+    state.plan.days[dayIdx - 1].spotIds.push(spotId);
+  } else {
+    return;
+  }
+  onPlanChanged();
+}
+function moveSpotDown(spotId) {
+  const loc = spotPosition(spotId);
+  if (!loc) return;
+  const { dayIdx, pos } = loc;
+  const day = state.plan.days[dayIdx];
+  if (pos < day.spotIds.length - 1) {
+    [day.spotIds[pos + 1], day.spotIds[pos]] = [day.spotIds[pos], day.spotIds[pos + 1]];
+  } else if (dayIdx < state.plan.days.length - 1) {
+    // move to the start of the next day
+    day.spotIds.splice(pos, 1);
+    state.plan.days[dayIdx + 1].spotIds.unshift(spotId);
+  } else {
+    return;
+  }
+  onPlanChanged();
+}
+// Day reordering (入れ替え)
+function moveDayUp(dayIdx) {
+  if (dayIdx <= 0) return;
+  const d = state.plan.days;
+  [d[dayIdx - 1], d[dayIdx]] = [d[dayIdx], d[dayIdx - 1]];
+  onPlanChanged();
+}
+function moveDayDown(dayIdx) {
+  if (dayIdx >= state.plan.days.length - 1) return;
+  const d = state.plan.days;
+  [d[dayIdx + 1], d[dayIdx]] = [d[dayIdx], d[dayIdx + 1]];
+  onPlanChanged();
+}
+// Free-form move for drag & drop: place spotId at (targetDayIdx, targetPos)
+function reorderSpot(spotId, targetDayIdx, targetPos) {
+  const loc = spotPosition(spotId);
+  if (!loc) return;
+  if (targetDayIdx < 0 || targetDayIdx >= state.plan.days.length) return;
+  // remove from current
+  state.plan.days[loc.dayIdx].spotIds.splice(loc.pos, 1);
+  // adjust target pos if same day and removing earlier element
+  let pos = targetPos;
+  if (loc.dayIdx === targetDayIdx && loc.pos < targetPos) pos -= 1;
+  const arr = state.plan.days[targetDayIdx].spotIds;
+  pos = Math.max(0, Math.min(pos, arr.length));
+  arr.splice(pos, 0, spotId);
+  onPlanChanged();
+}
+
+// ── Share / save: encode plan into the URL ──
+function encodePlan() {
+  // day1id,id2;day2id,...  → URL-safe
+  return state.plan.days.map(d => d.spotIds.join(',')).join(';');
+}
+function applyEncodedPlan(str) {
+  if (!str) return false;
+  try {
+    const days = decodeURIComponent(str).split(';').map(seg => ({
+      id: newDayId(),
+      spotIds: seg.split(',').map(s => s.trim()).filter(id => SPOT_BY_ID[id]),
+    }));
+    if (!days.length) return false;
+    state.plan = { days };
+    return true;
+  } catch (_) { return false; }
+}
+function buildShareUrl() {
+  const base = location.origin + location.pathname;
+  return base + '#plan=' + encodeURIComponent(encodePlan());
+}
+async function copyShareLink() {
+  if (planTotalCount() === 0) { toast('プランが空です。先にスポットを追加してください。'); return; }
+  const url = buildShareUrl();
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('共有リンクをコピーしました ✓');
+  } catch (_) {
+    // Fallback: show a prompt for manual copy
+    window.prompt('この共有リンクをコピーしてください:', url);
+  }
+}
+
+// ── Print / PDF ──
+function buildPrintHTML() {
+  let html = `<h1>北海道 旅プラン</h1>`;
+  html += `<p class="print-meta">ほっかいどう旅手帳 — ${new Date().toLocaleDateString('ja-JP')}</p>`;
+  state.plan.days.forEach((day, i) => {
+    if (!day.spotIds.length) return;
+    const totals = dayTotals(day);
+    html += `<section class="print-day"><h2>DAY ${i + 1}` +
+      (totals.km > 0 ? ` <span class="print-day-stat">移動 ${formatKm(totals.km)} / ${formatDuration(totals.min)}</span>` : '') +
+      `</h2><ol>`;
+    day.spotIds.forEach(id => {
+      const s = SPOT_BY_ID[id];
+      if (!s) return;
+      html += `<li><strong>${escapeHtml(s.name)}</strong> <span class="print-area-tag">📍${escapeHtml(s.area)}</span><br>` +
+        `<span class="print-desc">${escapeHtml(s.description)}</span></li>`;
+    });
+    html += `</ol></section>`;
+  });
+  return html;
+}
+function printPlan() {
+  if (planTotalCount() === 0) { toast('プランが空です。'); return; }
+  const area = $('#print-area');
+  if (area) area.innerHTML = buildPrintHTML();
+  window.print();
+}
+
+// ── Toast (lightweight, transient) ──
+let toastTimer = null;
+function toast(msg) {
+  let el = $('#toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.className = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('is-visible'), 2600);
+}
+
 function onPlanChanged() {
   savePlan();
   renderPlannerDrawer();
@@ -206,6 +395,11 @@ function renderPlanOnMap() {
         dashArray: '8, 6',
         lineCap: 'round',
       });
+      const t = dayTotals(day);
+      line.bindTooltip(
+        `DAY ${dayIdx + 1}・移動 ${formatKm(t.km)} / ${formatDuration(t.min)}`,
+        { sticky: true, className: 'route-tooltip' }
+      );
       planLayer.addLayer(line);
     }
   });
@@ -314,10 +508,31 @@ const SYSTEM_INSTRUCTIONS = `あなたは北海道専門の旅行プランナー
 - doto   = 知床・釧路・網走・阿寒・帯広 (北海道東エリア)
 - dohoku = 旭川・稚内・利尻礼文・サロベツ (北海道北エリア)
 
+【プランの講評・相談への対応】
+- ユーザーが「今のプランどう?」「講評して」と聞いてきたら、提示される現在のプラン内容をもとに:
+  - 全体の印象を一言
+  - 季節・天候の注意点 (例: 冬は流氷、夏はラベンダー、雪道の運転など)
+  - 移動の効率 (離れたエリアが混在していないか。1日の移動が長すぎないか)
+  - 足りないジャンル (グルメ/温泉/自然などの偏り) があれば指摘
+  - 必要なら propose_spots で追加候補を提案
+- 移動距離の目安が提示された場合はそれを踏まえてコメントする
+
 【ツール呼び出し後】
 - 短く一言「いかがでしょうか?」「気になるところはありますか?」程度で済ませる
 - スポットの説明をテキストで繰り返さない (UIに表示されるので不要)
 `;
+
+// Compact text description of the user's current plan, for AI awareness.
+function planSummaryText() {
+  if (planTotalCount() === 0) return '（ユーザーのプランはまだ空です）';
+  return state.plan.days.map((day, i) => {
+    if (!day.spotIds.length) return `DAY ${i + 1}: (空)`;
+    const names = day.spotIds.map(id => SPOT_BY_ID[id]?.name).filter(Boolean).join(' → ');
+    const t = dayTotals(day);
+    const move = t.km > 0 ? ` [移動目安 ${formatKm(t.km)}/${formatDuration(t.min)}]` : '';
+    return `DAY ${i + 1}: ${names}${move}`;
+  }).join('\n');
+}
 
 function buildSystem() {
   return [
@@ -326,6 +541,12 @@ function buildSystem() {
       type: 'text',
       text: `# 利用可能な北海道観光スポット (64件)\n${JSON.stringify(SPOTS_FOR_AI)}`,
       cache_control: { type: 'ephemeral' },
+    },
+    // Dynamic (not cached) — placed after the cache breakpoint so it never
+    // invalidates the big spots-data cache above.
+    {
+      type: 'text',
+      text: `# ユーザーが現在組んでいるプラン (リアルタイム)\n${planSummaryText()}`,
     },
   ];
 }
@@ -384,7 +605,7 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-7',
+        model: 'claude-opus-4-8',
         max_tokens: 3000,
         system,
         tools,
@@ -820,6 +1041,15 @@ async function sendUserMessage(text) {
   $('#chat-input')?.focus();
 }
 
+// Ask the AI to review the user's current plan
+function reviewPlan() {
+  if (state.isStreaming) return;
+  if (planTotalCount() === 0) { toast('プランが空です。先にスポットを追加してください。'); return; }
+  if (!getApiUrl()) { toast('AI機能が未設定です (プロキシURL)。'); return; }
+  closePlannerDrawer();
+  sendUserMessage('今組んでいるプランを講評してください。全体の印象、季節・天候の注意点、移動の効率、足りないジャンルがあれば教えてください。');
+}
+
 async function runAssistantTurn(depth) {
   if (depth >= MAX_TOOL_RECURSION) {
     addBotMessage(`ツール呼び出しが ${MAX_TOOL_RECURSION} 回連続したため一旦停止しました。再度お声がけください。`);
@@ -972,46 +1202,56 @@ function renderPlannerDrawer() {
 
 function renderPlannerDay(day, dayIdx) {
   const color = DAY_COLORS[dayIdx % DAY_COLORS.length];
+  const totals = dayTotals(day);
+  const daysCount = state.plan.days.length;
+
   let html = `<div class="planner-day" data-day-idx="${dayIdx}">`;
   html += `<div class="planner-day-head">`;
   html += `<span class="planner-day-num" style="background:${color}">DAY ${dayIdx + 1}</span>`;
+  if (totals.km > 0) {
+    html += `<span class="planner-day-stat" title="この日の移動目安">🚗 ${formatKm(totals.km)} / ${formatDuration(totals.min)}</span>`;
+  }
   html += `<div class="planner-day-actions">`;
-  if (state.plan.days.length > 1) {
+  html += `<button type="button" class="planner-icon-btn" data-day-up="${dayIdx}" ${dayIdx === 0 ? 'disabled' : ''} title="日を上へ" aria-label="日を上へ">▲</button>`;
+  html += `<button type="button" class="planner-icon-btn" data-day-down="${dayIdx}" ${dayIdx === daysCount - 1 ? 'disabled' : ''} title="日を下へ" aria-label="日を下へ">▼</button>`;
+  if (daysCount > 1) {
     html += `<button type="button" class="planner-icon-btn danger" data-remove-day="${dayIdx}" title="この日を削除" aria-label="この日を削除">×</button>`;
   }
   html += `</div></div>`;
 
+  html += `<div class="planner-spots" data-day-idx="${dayIdx}">`;
   if (day.spotIds.length === 0) {
-    html += `<div class="planner-spot-empty">スポットを追加してください</div>`;
+    html += `<div class="planner-spot-empty">ここにドラッグ、または「＋ プランへ」で追加</div>`;
   } else {
-    html += `<div class="planner-spots">`;
     day.spotIds.forEach((sid, orderIdx) => {
       const spot = SPOT_BY_ID[sid];
       if (!spot) return;
       html += renderPlannerSpot(spot, orderIdx, dayIdx);
+      // travel leg to the next spot
+      if (orderIdx < day.spotIds.length - 1 && totals.legs[orderIdx]) {
+        const leg = totals.legs[orderIdx];
+        html += `<div class="planner-leg"><span>🚗 ${formatKm(leg.km)}・${formatDuration(leg.min)}</span></div>`;
+      }
     });
-    html += `</div>`;
   }
+  html += `</div>`;
 
   html += `</div>`;
   return html;
 }
 
 function renderPlannerSpot(spot, orderIdx, dayIdx) {
-  const daysCount = state.plan.days.length;
-  const canMovePrev = dayIdx > 0;
-  const canMoveNext = dayIdx < daysCount - 1;
   return `
-    <div class="planner-spot" data-spot="${spot.id}">
-      <span class="planner-spot-order">${orderIdx + 1}</span>
-      <div class="planner-spot-info">
+    <div class="planner-spot" data-spot="${spot.id}" data-pos="${orderIdx}" draggable="true">
+      <span class="planner-drag" aria-hidden="true" title="ドラッグで並べ替え">⠿</span>
+      <span class="planner-spot-order" style="background:${DAY_COLORS[dayIdx % DAY_COLORS.length]}">${orderIdx + 1}</span>
+      <div class="planner-spot-info" data-locate-spot="${spot.id}" title="マップで見る">
         <div class="planner-spot-name">${escapeHtml(spot.name)}</div>
         <div class="planner-spot-area">📍 ${escapeHtml(spot.area)}</div>
       </div>
       <div class="planner-spot-actions">
-        <button type="button" class="planner-slide-btn" data-slide-spot="${spot.id}" data-direction="prev" ${canMovePrev ? '' : 'disabled'} title="前の日へ" aria-label="前の日へ">◀</button>
-        <button type="button" class="planner-slide-btn" data-slide-spot="${spot.id}" data-direction="next" data-add-day-if-needed="true" title="次の日へ" aria-label="次の日へ">▶</button>
-        <button type="button" class="planner-icon-btn" data-locate-spot="${spot.id}" title="マップで見る" aria-label="マップで見る">📍</button>
+        <button type="button" class="planner-icon-btn" data-move-up="${spot.id}" title="ひとつ前へ" aria-label="ひとつ前へ">▲</button>
+        <button type="button" class="planner-icon-btn" data-move-down="${spot.id}" title="ひとつ後へ" aria-label="ひとつ後へ">▼</button>
         <button type="button" class="planner-icon-btn danger" data-remove-spot="${spot.id}" title="削除" aria-label="削除">×</button>
       </div>
     </div>
@@ -1020,36 +1260,83 @@ function renderPlannerSpot(spot, orderIdx, dayIdx) {
 
 function wirePlannerEvents() {
   $$('#planner-body [data-remove-day]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = Number(btn.dataset.removeDay);
-      removeDay(idx);
-    });
+    btn.addEventListener('click', () => removeDay(Number(btn.dataset.removeDay)));
+  });
+  $$('#planner-body [data-day-up]').forEach(btn => {
+    btn.addEventListener('click', () => moveDayUp(Number(btn.dataset.dayUp)));
+  });
+  $$('#planner-body [data-day-down]').forEach(btn => {
+    btn.addEventListener('click', () => moveDayDown(Number(btn.dataset.dayDown)));
   });
   $$('#planner-body [data-remove-spot]').forEach(btn => {
     btn.addEventListener('click', () => removeFromPlan(btn.dataset.removeSpot));
   });
-  $$('#planner-body [data-slide-spot]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.slideSpot;
-      const dir = btn.dataset.direction; // 'prev' | 'next'
-      const fromIdx = findSpotDayIndex(id);
-      if (fromIdx === -1) return;
-      let toIdx = dir === 'prev' ? fromIdx - 1 : fromIdx + 1;
-      if (toIdx < 0) return;
-      // Auto-add a new day if moving past the last day
-      if (toIdx >= state.plan.days.length) {
-        state.plan.days.push({ id: newDayId(), spotIds: [] });
-      }
-      moveToDay(id, toIdx);
-    });
+  $$('#planner-body [data-move-up]').forEach(btn => {
+    btn.addEventListener('click', () => moveSpotUp(btn.dataset.moveUp));
   });
-  $$('#planner-body [data-locate-spot]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.locateSpot;
+  $$('#planner-body [data-move-down]').forEach(btn => {
+    btn.addEventListener('click', () => moveSpotDown(btn.dataset.moveDown));
+  });
+  $$('#planner-body [data-locate-spot]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.locateSpot;
       const spot = SPOT_BY_ID[id];
       if (spot?.coords && map) {
         map.flyTo(spot.coords, 12, { duration: 0.6 });
+        markerById[id]?.openPopup();
       }
+    });
+  });
+  wirePlannerDnD();
+}
+
+// ── Drag & drop reordering (desktop / pointer) ──
+let dragSpotId = null;
+function wirePlannerDnD() {
+  $$('#planner-body .planner-spot').forEach(row => {
+    row.addEventListener('dragstart', e => {
+      dragSpotId = row.dataset.spot;
+      row.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', dragSpotId); } catch (_) {}
+    });
+    row.addEventListener('dragend', () => {
+      dragSpotId = null;
+      $$('#planner-body .planner-spot').forEach(r => r.classList.remove('is-dragging', 'drop-before', 'drop-after'));
+    });
+    row.addEventListener('dragover', e => {
+      if (!dragSpotId) return;
+      e.preventDefault();
+      const rect = row.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      row.classList.toggle('drop-after', after);
+      row.classList.toggle('drop-before', !after);
+    });
+    row.addEventListener('dragleave', () => {
+      row.classList.remove('drop-before', 'drop-after');
+    });
+    row.addEventListener('drop', e => {
+      if (!dragSpotId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const targetDayIdx = Number(row.closest('.planner-spots').dataset.dayIdx);
+      const targetPos = Number(row.dataset.pos) + (row.classList.contains('drop-after') ? 1 : 0);
+      reorderSpot(dragSpotId, targetDayIdx, targetPos);
+    });
+  });
+  // Allow dropping onto an empty day or the container tail
+  $$('#planner-body .planner-spots').forEach(container => {
+    container.addEventListener('dragover', e => {
+      if (!dragSpotId) return;
+      e.preventDefault();
+    });
+    container.addEventListener('drop', e => {
+      if (!dragSpotId) return;
+      // Only handle if the drop wasn't already handled by a spot row
+      if (e.target.closest('.planner-spot')) return;
+      e.preventDefault();
+      const targetDayIdx = Number(container.dataset.dayIdx);
+      reorderSpot(dragSpotId, targetDayIdx, state.plan.days[targetDayIdx].spotIds.length);
     });
   });
 }
@@ -1057,8 +1344,22 @@ function wirePlannerEvents() {
 // ─────────────────────────────────────────────
 // Boot
 // ─────────────────────────────────────────────
+function loadPlanFromHash() {
+  const m = (location.hash || '').match(/plan=([^&]+)/);
+  if (!m) return false;
+  const ok = applyEncodedPlan(m[1]);
+  if (ok) {
+    savePlan();
+    // Clear the hash so a reload doesn't keep re-importing
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(() => toast('共有されたプランを読み込みました ✓'), 400);
+  }
+  return ok;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadPlan();
+  loadPlanFromHash(); // shared plan in URL overrides the saved one
   initMap();
   renderPlannerDrawer();
   updatePlanCount();
@@ -1091,6 +1392,9 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#planner-clear')?.addEventListener('click', () => {
     if (planTotalCount() === 0 || confirm('プランを全部消してよろしいですか?')) clearPlan();
   });
+  $('#planner-share')?.addEventListener('click', copyShareLink);
+  $('#planner-print')?.addEventListener('click', printPlan);
+  $('#planner-review')?.addEventListener('click', reviewPlan);
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
       closePlannerDrawer();
