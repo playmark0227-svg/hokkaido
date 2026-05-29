@@ -1603,13 +1603,19 @@ body.map-hidden .map-panel { display: none; }
 @media (max-width: 960px) {
   .chat-layout {
     /* Stack vertically: Map (top) → Planner (middle) → Chat (bottom) */
-    grid-template-rows: 28vh minmax(160px, 30vh) minmax(0, 1fr);
+    grid-template-rows: 25vh minmax(150px, 25vh) minmax(0, 1fr);
     grid-template-columns: 1fr;
   }
+  /* Reorder: HTML order is Map → Chat → Plan, but we want Map → Plan → Chat */
+  .map-panel      { grid-row: 1; }
+  .planner-drawer { grid-row: 2; }
+  .chat-panel     { grid-row: 3; }
   body.map-hidden .chat-layout {
-    grid-template-rows: minmax(160px, 30vh) minmax(0, 1fr);
+    grid-template-rows: minmax(150px, 25vh) minmax(0, 1fr);
     grid-template-columns: 1fr;
   }
+  body.map-hidden .planner-drawer { grid-row: 1; }
+  body.map-hidden .chat-panel     { grid-row: 2; }
 }
 
 .chat-panel {
@@ -1705,6 +1711,38 @@ body.map-hidden .map-panel { display: none; }
 .welcome-example span {
   font-size: 0.82rem;
   color: var(--ink-light);
+}
+
+/* Mobile: compact welcome + horizontal scrolling examples */
+@media (max-width: 720px) {
+  .chat-thread { padding: 0.75rem 0.7rem 0.6rem; }
+  .chat-welcome { padding: 0.6rem 0 0.4rem; }
+  .welcome-hero { padding-inline: 0.6rem; }
+  .welcome-emblem { width: 48px; height: 48px; margin-bottom: 0.4rem; border-width: 2px; }
+  .welcome-emblem svg { width: 32px; height: 32px; }
+  .welcome-title { font-size: 1.05rem; margin-bottom: 0.3rem; line-height: 1.3; }
+  .welcome-sub { font-size: 0.78rem; line-height: 1.55; margin-bottom: 0.7rem; }
+  .welcome-hint { font-size: 0.72rem; line-height: 1.5; }
+  .welcome-examples {
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    margin-inline: -0.5rem;
+    max-width: none;
+  }
+  .welcome-examples::-webkit-scrollbar { display: none; }
+  .welcome-example {
+    flex: 0 0 auto;
+    width: 180px;
+    scroll-snap-align: start;
+    padding: 0.6rem 0.7rem;
+  }
+  .welcome-example strong { font-size: 0.84rem; }
+  .welcome-example span { font-size: 0.72rem; }
 }
 
 /* ----- Inline actions inside bot bubble (welcome / demo flow) ----- */
@@ -2052,10 +2090,24 @@ body.map-hidden .map-panel { display: none; }
   position: relative;
   background: var(--paper-warm);
   min-height: 0;
+  overflow: hidden;
 }
 .map-panel #map {
   width: 100%;
   height: 100%;
+}
+
+@media (max-width: 720px) {
+  .map-overlay-legend {
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.7rem;
+    max-width: 130px;
+    gap: 0.2rem;
+  }
+  .map-overlay-legend .legend-title { font-size: 0.72rem; padding-bottom: 0.15rem; }
+  .map-overlay-legend .dot { width: 9px; height: 9px; border-width: 1.5px; }
 }
 
 /* ============================================================
