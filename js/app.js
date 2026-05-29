@@ -949,20 +949,17 @@ function renderPlannerDrawer() {
   const body = $('#planner-body');
   if (!body) return;
   const total = planTotalCount();
+  const drawer = $('#planner-drawer');
+  if (drawer) drawer.classList.toggle('plan-is-empty', total === 0);
   if (total === 0) {
+    // Compact empty state — no empty day cards (saves space, esp. mobile)
     body.innerHTML = `
       <div class="planner-empty">
-        <strong>まだ何も追加されていません</strong>
-        AIの提案カードや「＋ プランへ」ボタンで<br>気になるスポットを追加してください。
+        <span class="planner-empty-emoji" aria-hidden="true">🧭</span>
+        <strong>まだ空っぽです</strong>
+        左のマップや、AIが提案するスポットの<br>「＋ プランへ」で旅の候補を集めましょう。
       </div>
     `;
-    // Even when empty, still allow add-day/clear etc.
-    // Render empty days too so user can plan from scratch
-    let dayHtml = '';
-    state.plan.days.forEach((day, dayIdx) => {
-      dayHtml += renderPlannerDay(day, dayIdx);
-    });
-    body.innerHTML += dayHtml;
   } else {
     let html = '';
     state.plan.days.forEach((day, dayIdx) => {
