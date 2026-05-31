@@ -3331,87 +3331,58 @@ body.drawer-open .planner-overlay {
   overflow: hidden;
 }
 
-/* Mobile: inline panel between map and chat (no drawer) */
+/* Mobile (≤960px): planner is a slide-in drawer triggered by a nav button */
 @media (max-width: 960px) {
   .planner-drawer {
-    border-left: none;
-    border-top: 3px solid var(--ink);
-    border-bottom: 3px solid var(--ink);
-    min-height: 0;
-    /* Cap height so a long plan scrolls internally instead of
-       pushing the chat off-screen. */
-    max-height: 42vh;
+    position: fixed !important;
+    grid-row: auto !important;
+    right: 0; top: 0; bottom: 0;
+    width: min(380px, 92vw);
+    max-height: none;
+    border-top: none;
+    border-bottom: none;
+    border-left: 3px solid var(--ink);
+    box-shadow: -8px 0 0 var(--ink), -12px 0 20px rgba(0,0,0,0.15);
+    transform: translateX(105%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+    z-index: 999;
   }
-  .planner-overlay {
-    display: none !important;
-  }
-  .planner-close-btn {
-    display: none;
-  }
-  .plan-toggle-btn {
-    display: none; /* planner is always visible inline */
-  }
-  /* Header is the pull-down tab: tappable, shows count + chevron */
-  .planner-head {
-    padding: 0.5rem 0.8rem;
-    cursor: pointer;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .planner-head:active { background: var(--c-orange); }
-  .planner-head h2 {
-    font-size: 0.98rem;
-    display: flex;
-    align-items: center;
-    flex: 1;
-  }
-  .planner-chevron {
-    display: inline-block;
-    font-family: "Yusei Magic", sans-serif;
-    font-size: 0.9rem;
-    color: var(--ink);
-    margin-left: 0.4rem;
-    transition: transform .25s;
-  }
-  .planner-body {
-    padding: 0.55rem 0.7rem 0.65rem;
-  }
-  .planner-day {
-    padding: 0.55rem 0.65rem 0.65rem;
-    margin-bottom: 0.55rem;
-  }
-  .planner-foot {
-    padding: 0.45rem 0.7rem;
-  }
-  .planner-foot-btn {
-    font-size: 0.74rem;
-    padding: 0.35rem 0.5rem;
+  body.drawer-open .planner-drawer {
+    transform: translateX(0);
   }
 
-  /* Pull-down COLLAPSED state — just the header bar visible */
-  .planner-drawer.is-collapsed {
-    max-height: none;
+  /* Show the nav button + close button + overlay backdrop on mobile */
+  .plan-toggle-btn { display: inline-flex !important; }
+  .planner-close-btn { display: grid !important; }
+  .planner-overlay {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(61, 40, 23, 0.35);
+    z-index: 998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
   }
+  body.drawer-open .planner-overlay {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Hide the pull-down chevron — drawer mode replaces it */
+  .planner-chevron { display: none; }
+  .planner-head { cursor: default; padding: 0.7rem 1rem; }
+  .planner-head h2 { font-size: 1.05rem; }
+
+  .planner-body { padding: 0.7rem 0.85rem 0.85rem; }
+  .planner-day { padding: 0.65rem 0.75rem 0.75rem; margin-bottom: 0.65rem; }
+  .planner-foot { padding: 0.55rem 0.85rem; }
+  .planner-foot-btn { font-size: 0.78rem; padding: 0.4rem 0.6rem; }
+
+  /* No more is-collapsed behavior on mobile (drawer replaces it) */
   .planner-drawer.is-collapsed .planner-body,
   .planner-drawer.is-collapsed .planner-foot {
-    display: none;
-  }
-  .planner-drawer.is-collapsed .planner-chevron {
-    transform: rotate(-90deg);
-  }
-  .planner-drawer.is-collapsed {
-    border-bottom: 3px solid var(--ink);
-  }
-
-  /* When the plan is empty, shrink the panel to just the prompt */
-  .planner-drawer.plan-is-empty {
-    max-height: none;
-  }
-  .planner-drawer.plan-is-empty .planner-foot {
-    display: none;
-  }
-  .planner-drawer.plan-is-empty .planner-empty {
-    padding: 0.85rem 1rem;
+    display: block;
   }
 }
 
@@ -3927,50 +3898,44 @@ body.drawer-open .planner-overlay {
 
 /* ── Phone (≤720px) — chat dominates, map floats as a tappable thumbnail ── */
 @media (max-width: 720px) {
-  /* Drop the map row — map becomes a floating thumbnail.
-     Layout is just Planner (collapsed band) + Chat. */
+  /* Layout collapses to: just chat. Map floats, planner is a drawer. */
   .chat-layout {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     grid-template-columns: 1fr;
   }
   body.map-hidden .chat-layout {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
-  .planner-drawer { grid-row: 1 !important; }
-  .chat-panel     { grid-row: 2 !important; }
+  .chat-panel { grid-row: 1 !important; }
 
-  /* Map: floating thumbnail (top-right, tucked below planner head) */
+  /* Map: floating thumbnail (top-right, below the sticky header) */
   .map-panel {
     position: fixed !important;
     grid-row: auto !important;
-    top: calc(var(--chat-header-h) + 56px);
-    right: 8px;
-    width: 110px;
-    height: 82px;
+    top: calc(var(--chat-header-h) + 10px);
+    right: 10px;
+    width: 170px;
+    height: 130px;
     border: 2px solid var(--ink);
-    border-radius: 10px;
+    border-radius: 12px;
     box-shadow: 2px 2px 0 var(--ink), 0 4px 10px rgba(0,0,0,0.15);
     overflow: hidden;
     z-index: 60;
     cursor: pointer;
     transition: top .3s, right .3s, width .3s, height .3s, border-radius .3s;
   }
-  /* Hide legend / route tooltips on the thumbnail */
   .map-panel .map-overlay-legend { display: none; }
-  /* Expand pill visible only when collapsed */
   .map-pill { display: grid; place-items: center; }
   .map-pill-close { display: none; }
   .map-pill-expand {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 22px;
-    height: 22px;
+    top: 5px; right: 5px;
+    width: 24px; height: 24px;
     border-radius: 50%;
     background: var(--paper);
     border: 1.5px solid var(--ink);
     box-shadow: 1px 1px 0 var(--ink);
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--ink);
     z-index: 510;
     cursor: pointer;
@@ -3995,21 +3960,18 @@ body.drawer-open .planner-overlay {
   .map-panel.is-expanded .map-pill-close {
     display: grid; place-items: center;
     position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 30px;
-    height: 30px;
+    top: 6px; right: 6px;
+    width: 32px; height: 32px;
     border-radius: 50%;
     background: var(--c-red);
     color: var(--paper);
     border: 2px solid var(--ink);
     box-shadow: 2px 2px 0 var(--ink);
-    font-size: 1rem;
+    font-size: 1.05rem;
     z-index: 510;
     cursor: pointer;
     line-height: 1;
   }
-  /* Backdrop behind the expanded map */
   .map-backdrop {
     display: block;
     position: fixed;
@@ -4040,13 +4002,13 @@ body.drawer-open .planner-overlay {
   .chat-avatar { width: 28px; height: 28px; font-size: 0.62rem; border-width: 1.5px; box-shadow: 1.5px 1.5px 0 var(--ink); }
   .chat-msg { gap: 0.35rem; }
 
-  /* Welcome screen leaves room for the floating map: shift hero right-padding */
+  /* Welcome screen leaves room for the floating map */
   .chat-welcome { padding: 0.4rem 0 0.3rem; }
-  .welcome-hero { padding-inline: 0.5rem 130px; text-align: left; }
+  .welcome-hero { padding: 0.3rem 190px 0.3rem 0.5rem; text-align: left; min-height: 130px; }
   .welcome-emblem { width: 40px; height: 40px; margin-bottom: 0.3rem; }
   .welcome-emblem svg { width: 26px; height: 26px; }
-  .welcome-title { font-size: 0.98rem; margin-bottom: 0.2rem; }
-  .welcome-sub { font-size: 0.74rem; line-height: 1.5; margin-bottom: 0.45rem; max-width: none; }
+  .welcome-title { font-size: 1rem; margin-bottom: 0.2rem; }
+  .welcome-sub { font-size: 0.75rem; line-height: 1.5; margin-bottom: 0.45rem; max-width: none; }
   .welcome-hint { font-size: 0.7rem; }
 
   .proposal-spots { grid-template-columns: 1fr; gap: 0.45rem; }
@@ -4054,7 +4016,7 @@ body.drawer-open .planner-overlay {
   .proposal-title { font-size: 1.05rem; }
   .proposal-intro { font-size: 0.8rem; line-height: 1.55; }
 
-  /* Spot cards: thinner borders, smaller media */
+  /* Spot cards */
   .spot-listing { grid-template-columns: 70px 1fr; border-width: 2px; box-shadow: 2px 2px 0 var(--ink); border-radius: 10px; }
   .spot-media, .spot-media-icon { width: 70px; height: 70px; }
   .spot-media { border-right-width: 2px; }
@@ -4069,39 +4031,37 @@ body.drawer-open .planner-overlay {
   .chat-textarea { min-height: 40px; padding: 0.5rem 0.75rem; border-radius: 11px; border-width: 2px; }
   .chat-send-btn { width: 40px; height: 40px; border-width: 2px; box-shadow: 1.5px 1.5px 0 var(--ink); }
 
-  /* Planner header / body: thinner borders + tighter spacing */
-  .planner-drawer { border-top-width: 2px; border-bottom-width: 2px; }
-  .planner-head { padding: 0.4rem 0.7rem; }
-  .planner-head h2 { font-size: 0.92rem; }
-  .planner-day { padding: 0.5rem 0.6rem 0.6rem; margin-bottom: 0.45rem; border-width: 2px; border-radius: 11px; box-shadow: 2px 2px 0 var(--ink); }
-  .planner-spot { border-width: 1px; padding: 0.35rem 0.4rem; }
-  .planner-icon-btn { border-width: 1px; box-shadow: 1px 1px 0 var(--ink); }
-  .planner-foot { padding: 0.4rem 0.6rem; gap: 0.35rem; border-top-width: 2px; }
-  .planner-foot-btn { font-size: 0.72rem; padding: 0.3rem 0.45rem; border-width: 1.5px; box-shadow: 1.5px 1.5px 0 var(--ink); }
+  /* Plan toggle button in nav: compact pill with badge */
+  .plan-toggle-btn {
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+    border-width: 2px;
+    box-shadow: 1.5px 1.5px 0 var(--ink);
+  }
+  .plan-toggle-btn .plan-count {
+    font-size: 0.66rem;
+    padding: 0 0.35rem;
+    min-width: 16px;
+  }
 }
-
-/* When the floating map is expanded, dim the planner pulldown so it doesn't peek through */
-body.map-expanded .planner-drawer { z-index: 60; }
 
 /* ── Small phone (≤430px) — squeeze further ── */
 @media (max-width: 430px) {
-  .chat-layout { grid-template-rows: auto minmax(0, 1fr); grid-template-columns: 1fr; }
-
-  /* Map thumbnail: even smaller */
-  .map-panel { width: 96px; height: 72px; top: calc(var(--chat-header-h) + 50px); right: 6px; }
+  /* Map thumbnail: a bit smaller */
+  .map-panel { width: 140px; height: 105px; top: calc(var(--chat-header-h) + 8px); right: 8px; }
 
   .chat-bubble { font-size: 0.84rem; max-width: 88%; padding: 0.5rem 0.7rem; }
   .welcome-title { font-size: 0.95rem; }
   .welcome-sub { font-size: 0.72rem; }
   .welcome-example { width: 155px; }
-  .welcome-hero { padding-inline: 0.4rem 110px; }
+  .welcome-hero { padding: 0.3rem 156px 0.3rem 0.4rem; min-height: 105px; }
 
-  .planner-head h2 { font-size: 0.88rem; }
+  .planner-head h2 { font-size: 0.94rem; }
   .planner-subtitle { display: none; }
-  .planner-spot { grid-template-columns: 12px 18px 1fr auto; gap: 0.25rem; padding: 0.3rem 0.4rem; }
-  .planner-spot-name { font-size: 0.78rem; }
-  .planner-icon-btn { width: 22px; height: 22px; font-size: 0.7rem; }
-  .planner-foot-btn { font-size: 0.7rem; padding: 0.3rem 0.4rem; }
+  .planner-spot { grid-template-columns: 14px 20px 1fr auto; gap: 0.3rem; padding: 0.35rem 0.4rem; }
+  .planner-spot-name { font-size: 0.8rem; }
+  .planner-icon-btn { width: 24px; height: 24px; font-size: 0.72rem; }
+  .planner-foot-btn { font-size: 0.72rem; padding: 0.35rem 0.4rem; }
 
   .spot-listing-name { font-size: 0.88rem; }
   .spot-pan-btn, .plan-add-btn { font-size: 0.66rem; padding: 0.1rem 0.45rem; }
