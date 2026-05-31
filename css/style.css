@@ -2103,6 +2103,9 @@ body.map-hidden .map-panel { display: none; }
   width: 100%;
   height: 100%;
 }
+/* Floating pill buttons on the map (mobile only — hidden elsewhere) */
+.map-pill { display: none; background: none; }
+.map-backdrop { display: none; }
 
 @media (max-width: 720px) {
   .map-overlay-legend {
@@ -3412,10 +3415,15 @@ body.drawer-open .planner-overlay {
   }
 }
 
-/* Desktop: chevron and the inline count badge are hidden */
+/* Desktop: chevron, map pills are hidden; planner header is non-interactive */
 @media (min-width: 961px) {
   .planner-chevron { display: none; }
   .planner-head { cursor: default; }
+  .map-pill, .map-backdrop { display: none !important; }
+}
+/* Tablet (721–960px) also keeps map inline + hides pills */
+@media (min-width: 721px) and (max-width: 960px) {
+  .map-pill, .map-backdrop { display: none !important; }
 }
 
 /* Inline count badge in the header */
@@ -3917,57 +3925,186 @@ body.drawer-open .planner-overlay {
   .itinerary-card { margin-left: 0; }
 }
 
-/* ── Phone (≤720px) — compact single column ── */
+/* ── Phone (≤720px) — chat dominates, map floats as a tappable thumbnail ── */
 @media (max-width: 720px) {
-  .chat-layout { grid-template-rows: 28vh auto minmax(0, 1fr); }
-  body.map-hidden .chat-layout { grid-template-rows: auto minmax(0, 1fr); }
-  /* When the plan is empty, keep its row to a thin band so the chat dominates */
-  body:has(.planner-drawer.plan-is-empty) .chat-layout {
-    grid-template-rows: 30vh auto minmax(0, 1fr);
+  /* Drop the map row — map becomes a floating thumbnail.
+     Layout is just Planner (collapsed band) + Chat. */
+  .chat-layout {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: 1fr;
+  }
+  body.map-hidden .chat-layout {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .planner-drawer { grid-row: 1 !important; }
+  .chat-panel     { grid-row: 2 !important; }
+
+  /* Map: floating thumbnail (top-right, tucked below planner head) */
+  .map-panel {
+    position: fixed !important;
+    grid-row: auto !important;
+    top: calc(var(--chat-header-h) + 56px);
+    right: 8px;
+    width: 110px;
+    height: 82px;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    box-shadow: 2px 2px 0 var(--ink), 0 4px 10px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 60;
+    cursor: pointer;
+    transition: top .3s, right .3s, width .3s, height .3s, border-radius .3s;
+  }
+  /* Hide legend / route tooltips on the thumbnail */
+  .map-panel .map-overlay-legend { display: none; }
+  /* Expand pill visible only when collapsed */
+  .map-pill { display: grid; place-items: center; }
+  .map-pill-close { display: none; }
+  .map-pill-expand {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+    box-shadow: 1px 1px 0 var(--ink);
+    font-size: 0.7rem;
+    color: var(--ink);
+    z-index: 510;
+    cursor: pointer;
+    line-height: 1;
   }
 
-  .chat-thread { padding: 0.8rem 0.75rem 0.7rem; gap: 0.7rem; }
-  .chat-bubble {
-    font-size: 0.9rem;
-    max-width: 85%;
-    padding: 0.6rem 0.85rem;
+  /* Expanded mode — near-fullscreen modal */
+  .map-panel.is-expanded {
+    top: 70px;
+    right: 8px;
+    left: 8px;
+    bottom: 70px;
+    width: auto;
+    height: auto;
+    z-index: 990;
     border-radius: 14px;
-    line-height: 1.65;
+    border-width: 2.5px;
+    cursor: default;
   }
-  .chat-avatar { width: 30px; height: 30px; font-size: 0.66rem; border-width: 2px; }
-  .chat-msg { gap: 0.4rem; }
+  .map-panel.is-expanded .map-overlay-legend { display: flex; }
+  .map-panel.is-expanded .map-pill-expand { display: none; }
+  .map-panel.is-expanded .map-pill-close {
+    display: grid; place-items: center;
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--c-red);
+    color: var(--paper);
+    border: 2px solid var(--ink);
+    box-shadow: 2px 2px 0 var(--ink);
+    font-size: 1rem;
+    z-index: 510;
+    cursor: pointer;
+    line-height: 1;
+  }
+  /* Backdrop behind the expanded map */
+  .map-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(61, 40, 23, 0.35);
+    z-index: 980;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+  body.map-expanded .map-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  body.map-hidden .map-panel { display: none; }
 
-  .proposal-spots { grid-template-columns: 1fr; gap: 0.5rem; }
+  /* Tight chat thread + thinner borders */
+  .chat-thread { padding: 0.7rem 0.7rem 0.6rem; gap: 0.55rem; }
+  .chat-bubble {
+    font-size: 0.88rem;
+    max-width: 86%;
+    padding: 0.55rem 0.8rem;
+    border-radius: 13px;
+    border-width: 2px;
+    line-height: 1.6;
+    box-shadow: 1.5px 1.5px 0 var(--ink);
+  }
+  .chat-avatar { width: 28px; height: 28px; font-size: 0.62rem; border-width: 1.5px; box-shadow: 1.5px 1.5px 0 var(--ink); }
+  .chat-msg { gap: 0.35rem; }
 
-  /* Chat input: keep tap targets comfortable, font ≥16px to avoid iOS zoom */
-  .chat-form { padding: 0.6rem 0.7rem 0.7rem; gap: 0.5rem; }
-  .chat-textarea { min-height: 42px; padding: 0.6rem 0.85rem; border-radius: 12px; }
-  .chat-send-btn { width: 42px; height: 42px; }
+  /* Welcome screen leaves room for the floating map: shift hero right-padding */
+  .chat-welcome { padding: 0.4rem 0 0.3rem; }
+  .welcome-hero { padding-inline: 0.5rem 130px; text-align: left; }
+  .welcome-emblem { width: 40px; height: 40px; margin-bottom: 0.3rem; }
+  .welcome-emblem svg { width: 26px; height: 26px; }
+  .welcome-title { font-size: 0.98rem; margin-bottom: 0.2rem; }
+  .welcome-sub { font-size: 0.74rem; line-height: 1.5; margin-bottom: 0.45rem; max-width: none; }
+  .welcome-hint { font-size: 0.7rem; }
 
-  /* Spot cards inside chat: slightly smaller media */
-  .spot-listing { grid-template-columns: 76px 1fr; }
-  .spot-media, .spot-media-icon { width: 76px; height: 76px; }
-  .spot-media-icon svg { width: 38px; height: 38px; }
+  .proposal-spots { grid-template-columns: 1fr; gap: 0.45rem; }
+  .proposal-card { padding: 0.7rem 0.8rem 0.9rem; border-width: 2px; box-shadow: 2px 2px 0 var(--ink); }
+  .proposal-title { font-size: 1.05rem; }
+  .proposal-intro { font-size: 0.8rem; line-height: 1.55; }
+
+  /* Spot cards: thinner borders, smaller media */
+  .spot-listing { grid-template-columns: 70px 1fr; border-width: 2px; box-shadow: 2px 2px 0 var(--ink); border-radius: 10px; }
+  .spot-media, .spot-media-icon { width: 70px; height: 70px; }
+  .spot-media { border-right-width: 2px; }
+  .spot-media-icon svg { width: 34px; height: 34px; }
+  .spot-listing-body { padding: 0.4rem 0.55rem 0.4rem 0.5rem; }
+  .spot-listing-name { font-size: 0.9rem; }
+  .spot-listing-meta { font-size: 0.66rem; }
+  .spot-listing-comment { font-size: 0.74rem; padding: 0.2rem 0.4rem; }
+
+  /* Chat input: keep ≥16px font to avoid iOS zoom, thinner border */
+  .chat-form { padding: 0.45rem 0.55rem 0.55rem; gap: 0.4rem; border-top-width: 1.5px; }
+  .chat-textarea { min-height: 40px; padding: 0.5rem 0.75rem; border-radius: 11px; border-width: 2px; }
+  .chat-send-btn { width: 40px; height: 40px; border-width: 2px; box-shadow: 1.5px 1.5px 0 var(--ink); }
+
+  /* Planner header / body: thinner borders + tighter spacing */
+  .planner-drawer { border-top-width: 2px; border-bottom-width: 2px; }
+  .planner-head { padding: 0.4rem 0.7rem; }
+  .planner-head h2 { font-size: 0.92rem; }
+  .planner-day { padding: 0.5rem 0.6rem 0.6rem; margin-bottom: 0.45rem; border-width: 2px; border-radius: 11px; box-shadow: 2px 2px 0 var(--ink); }
+  .planner-spot { border-width: 1px; padding: 0.35rem 0.4rem; }
+  .planner-icon-btn { border-width: 1px; box-shadow: 1px 1px 0 var(--ink); }
+  .planner-foot { padding: 0.4rem 0.6rem; gap: 0.35rem; border-top-width: 2px; }
+  .planner-foot-btn { font-size: 0.72rem; padding: 0.3rem 0.45rem; border-width: 1.5px; box-shadow: 1.5px 1.5px 0 var(--ink); }
 }
 
-/* ── Small phone (≤430px) — squeeze the essentials ── */
+/* When the floating map is expanded, dim the planner pulldown so it doesn't peek through */
+body.map-expanded .planner-drawer { z-index: 60; }
+
+/* ── Small phone (≤430px) — squeeze further ── */
 @media (max-width: 430px) {
-  .chat-layout { grid-template-rows: 20vh auto minmax(0, 1fr); }
+  .chat-layout { grid-template-rows: auto minmax(0, 1fr); grid-template-columns: 1fr; }
 
-  .chat-bubble { font-size: 0.86rem; max-width: 88%; }
-  .welcome-title { font-size: 0.98rem; }
-  .welcome-sub { font-size: 0.74rem; }
-  .welcome-example { width: 165px; }
+  /* Map thumbnail: even smaller */
+  .map-panel { width: 96px; height: 72px; top: calc(var(--chat-header-h) + 50px); right: 6px; }
 
-  .planner-head h2 { font-size: 0.9rem; }
+  .chat-bubble { font-size: 0.84rem; max-width: 88%; padding: 0.5rem 0.7rem; }
+  .welcome-title { font-size: 0.95rem; }
+  .welcome-sub { font-size: 0.72rem; }
+  .welcome-example { width: 155px; }
+  .welcome-hero { padding-inline: 0.4rem 110px; }
+
+  .planner-head h2 { font-size: 0.88rem; }
   .planner-subtitle { display: none; }
-  .planner-spot { grid-template-columns: 14px 20px 1fr auto; gap: 0.3rem; padding: 0.35rem 0.4rem; }
-  .planner-spot-name { font-size: 0.8rem; }
-  .planner-icon-btn { width: 24px; height: 24px; font-size: 0.72rem; }
-  .planner-foot-btn { font-size: 0.72rem; padding: 0.35rem 0.4rem; }
+  .planner-spot { grid-template-columns: 12px 18px 1fr auto; gap: 0.25rem; padding: 0.3rem 0.4rem; }
+  .planner-spot-name { font-size: 0.78rem; }
+  .planner-icon-btn { width: 22px; height: 22px; font-size: 0.7rem; }
+  .planner-foot-btn { font-size: 0.7rem; padding: 0.3rem 0.4rem; }
 
-  .spot-listing-name { font-size: 0.9rem; }
-  .spot-pan-btn, .plan-add-btn { font-size: 0.68rem; padding: 0.15rem 0.5rem; }
+  .spot-listing-name { font-size: 0.88rem; }
+  .spot-pan-btn, .plan-add-btn { font-size: 0.66rem; padding: 0.1rem 0.45rem; }
 }
 
 /* ============================================================

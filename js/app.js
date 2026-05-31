@@ -1192,6 +1192,25 @@ function toggleMap() {
   setTimeout(() => map?.invalidateSize(), 300);
 }
 
+// Mobile: map is a small floating thumbnail by default. Tap to expand to
+// a near-fullscreen modal; tap close (× / backdrop) to shrink back.
+function setMapInteractions(enabled) {
+  if (!map) return;
+  const m = enabled ? 'enable' : 'disable';
+  ['dragging','touchZoom','doubleClickZoom','scrollWheelZoom','boxZoom','keyboard']
+    .forEach(k => { try { map[k]?.[m](); } catch (_) {} });
+  if (map.tap) { try { map.tap[m](); } catch (_) {} }
+}
+function setMapExpanded(expanded) {
+  const panel = $('#map-panel');
+  if (!panel) return;
+  panel.classList.toggle('is-expanded', expanded);
+  document.body.classList.toggle('map-expanded', expanded);
+  setMapInteractions(expanded || !isMobileLayout());
+  setTimeout(() => map?.invalidateSize(), 280);
+}
+function toggleMapExpanded() { setMapExpanded(!$('#map-panel')?.classList.contains('is-expanded')); }
+
 // ─────────────────────────────────────────────
 // Planner Drawer
 // ─────────────────────────────────────────────
@@ -1422,8 +1441,37 @@ document.addEventListener('DOMContentLoaded', () => {
   // Welcome example chips — pre-baked demo flow (no API key required)
   $$('.welcome-example').forEach(wireExampleButton);
 
-  // Map toggle
+  // Map toggle (header eye icon)
   $('#toggle-map')?.addEventListener('click', toggleMap);
+
+  // Mobile: tap the small map to expand; tap the close pill / backdrop to shrink
+  $('#map-panel')?.addEventListener('click', (e) => {
+    if (!isMobileLayout()) return;
+    const panel = $('#map-panel');
+    // If clicking the close pill, collapse
+    if (e.target.closest('[data-map-close]')) { setMapExpanded(false); return; }
+    // Only auto-expand from the thumbnail state (when collapsed)
+    if (!panel.classList.contains('is-expanded')) {
+      e.stopPropagation();
+      setMapExpanded(true);
+    }
+  });
+  $('#map-backdrop')?.addEventListener('click', () => setMapExpanded(false));
+  // Default: thumbnail (no map interactions) on mobile
+  setTimeout(() => {
+    if (isMobileLayout()) setMapInteractions(false);
+  }, 700);
+
+  // When crossing the breakpoint, reset map interactions / expanded state
+  window.addEventListener('resize', () => {
+    if (isMobileLayout()) {
+      const expanded = $('#map-panel')?.classList.contains('is-expanded');
+      setMapInteractions(!!expanded);
+    } else {
+      setMapExpanded(false);
+      setMapInteractions(true);
+    }
+  });
 
   // Planner drawer wiring
   $('#plan-toggle')?.addEventListener('click', togglePlannerDrawer);
