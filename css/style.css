@@ -3265,7 +3265,10 @@ body.has-fullmap { background-attachment: scroll; }
 
 .plan-toggle-btn {
   display: inline-flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
+  white-space: nowrap;
   gap: 0.35rem;
   background: var(--c-red);
   color: var(--paper);
@@ -3278,6 +3281,13 @@ body.has-fullmap { background-attachment: scroll; }
   cursor: pointer;
   box-shadow: 2px 2px 0 var(--ink);
   transition: all .15s;
+  line-height: 1;
+}
+.plan-toggle-btn > * {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1;
 }
 .plan-toggle-btn:hover {
   background: var(--c-yellow);
@@ -3331,7 +3341,30 @@ body.drawer-open .planner-overlay {
   overflow: hidden;
 }
 
-/* Mobile (≤960px): planner is a slide-in drawer triggered by a nav button */
+/* Phone (≤720px): compact nav so the plan button fits inline */
+@media (max-width: 720px) {
+  .site-header { border-bottom-width: 2px; overflow: hidden; }
+  .site-header .container { width: calc(100% - 0.8rem); }
+  .nav { padding: 0.5rem 0; gap: 0.4rem; flex-wrap: nowrap; }
+  .nav-links { gap: 0.25rem; flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.78rem;
+  }
+  .brand-icon { width: 36px; height: 36px; }
+  .brand-text strong { font-size: 0.92rem; }
+  .brand-text span { font-size: 0.7rem; }
+  .nav-settings { width: 32px; height: 32px; }
+  .nav-settings svg { width: 16px; height: 16px; }
+}
+
+/* Small phone (≤430px): drop the "プラン" word, keep just 📋 + count */
+@media (max-width: 430px) {
+  .plan-toggle-label { display: none; }
+  .nav-links a { padding: 0.2rem 0.35rem; font-size: 0.72rem; }
+  .brand-text { display: none; } /* Just the cone icon to save horizontal room */
+}
 @media (max-width: 960px) {
   .planner-drawer {
     position: fixed !important;
@@ -3925,6 +3958,11 @@ body.drawer-open .planner-overlay {
     transition: top .3s, right .3s, width .3s, height .3s, border-radius .3s;
   }
   .map-panel .map-overlay-legend { display: none; }
+  /* Hide Leaflet's zoom controls and attribution on the thumbnail */
+  .map-panel:not(.is-expanded) .leaflet-control-zoom,
+  .map-panel:not(.is-expanded) .leaflet-control-attribution {
+    display: none !important;
+  }
   .map-pill { display: grid; place-items: center; }
   .map-pill-close { display: none; }
   .map-pill-expand {

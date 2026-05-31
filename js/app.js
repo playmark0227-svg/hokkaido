@@ -378,11 +378,14 @@ function togglePlannerCollapsed() {
 let map, markerLayer, planLayer;
 const markerById = {};
 
+// Approximate bounds of mainland Hokkaido (incl. Hakodate & Wakkanai)
+const HOKKAIDO_BOUNDS = [[41.35, 139.6], [45.6, 146.0]];
+
 function initMap() {
   if (typeof L === 'undefined') { setTimeout(initMap, 100); return; }
   map = L.map('map', {
     center: [43.4, 142.7],
-    zoom: 5,
+    zoom: 6,
     scrollWheelZoom: true,
     zoomControl: true,
   });
@@ -394,6 +397,11 @@ function initMap() {
   planLayer = L.layerGroup().addTo(map);
   SPOTS.forEach(addMarker);
   renderPlanOnMap();
+  // Fit Hokkaido into whatever container size we have (esp. mobile thumbnail)
+  setTimeout(() => {
+    map.invalidateSize();
+    map.fitBounds(HOKKAIDO_BOUNDS, { padding: [6, 6], maxZoom: 8 });
+  }, 250);
 }
 
 function renderPlanOnMap() {
@@ -1207,7 +1215,13 @@ function setMapExpanded(expanded) {
   panel.classList.toggle('is-expanded', expanded);
   document.body.classList.toggle('map-expanded', expanded);
   setMapInteractions(expanded || !isMobileLayout());
-  setTimeout(() => map?.invalidateSize(), 280);
+  setTimeout(() => {
+    map?.invalidateSize();
+    // When shrinking back to a thumbnail, re-fit Hokkaido so it stays useful
+    if (!expanded && isMobileLayout()) {
+      map?.fitBounds(HOKKAIDO_BOUNDS, { padding: [6, 6], maxZoom: 8 });
+    }
+  }, 280);
 }
 function toggleMapExpanded() { setMapExpanded(!$('#map-panel')?.classList.contains('is-expanded')); }
 
