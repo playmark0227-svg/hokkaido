@@ -1583,8 +1583,11 @@ textarea:focus-visible {
 
 body.layout-chat {
   background-attachment: scroll;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
+body.layout-chat,
+html { max-width: 100%; }
 
 .chat-layout {
   display: grid;
@@ -1626,6 +1629,8 @@ body.map-hidden .map-panel { display: none; }
   background: var(--paper);
   border-left: 2px solid var(--washi);
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 @media (max-width: 960px) {
   .chat-panel {
@@ -3310,7 +3315,7 @@ body.drawer-open .planner-overlay {
   pointer-events: auto;
 }
 
-/* Planner panel: side column on desktop, slide-in drawer on mobile */
+/* Planner panel: side column on desktop, inline panel on mobile */
 .planner-drawer {
   background: var(--paper);
   background-image: var(--washi-card);
@@ -3319,6 +3324,8 @@ body.drawer-open .planner-overlay {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* Mobile: inline panel between map and chat (no drawer) */
@@ -3373,14 +3380,9 @@ body.drawer-open .planner-overlay {
   }
 }
 
-/* Hide planner foot + compact empty prompt whenever the plan is empty (all sizes) */
+/* Hide planner foot whenever the plan is empty (all sizes) */
 .planner-drawer.plan-is-empty .planner-foot {
   display: none;
-}
-.planner-empty-emoji {
-  display: block;
-  font-size: 1.8rem;
-  margin-bottom: 0.3rem;
 }
 
 /* Desktop: hide close button (always visible) and toggle button (redundant) */
@@ -3684,20 +3686,31 @@ body.drawer-open .planner-overlay {
   color: var(--ink);
 }
 
+/* Empty state — compact horizontal layout that stays small */
 .planner-empty {
-  text-align: center;
-  padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.85rem 1rem;
   font-family: "Klee One", sans-serif;
   color: var(--ink-light);
-  font-size: 0.9rem;
-  line-height: 1.85;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  text-align: left;
 }
-.planner-empty strong {
+.planner-empty-emoji {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.planner-empty-text { min-width: 0; }
+.planner-empty-text strong {
   display: block;
   font-family: "Yusei Magic", sans-serif;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: var(--ink);
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.15rem;
+  font-weight: 400;
 }
 
 /* Mobile: full-width drawer */
@@ -3844,8 +3857,12 @@ body.drawer-open .planner-overlay {
 
 /* ── Phone (≤720px) — compact single column ── */
 @media (max-width: 720px) {
-  .chat-layout { grid-template-rows: 22vh auto minmax(0, 1fr); }
+  .chat-layout { grid-template-rows: 28vh auto minmax(0, 1fr); }
   body.map-hidden .chat-layout { grid-template-rows: auto minmax(0, 1fr); }
+  /* When the plan is empty, keep its row to a thin band so the chat dominates */
+  body:has(.planner-drawer.plan-is-empty) .chat-layout {
+    grid-template-rows: 30vh auto minmax(0, 1fr);
+  }
 
   .chat-thread { padding: 0.8rem 0.75rem 0.7rem; gap: 0.7rem; }
   .chat-bubble {

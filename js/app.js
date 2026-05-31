@@ -1182,12 +1182,14 @@ function renderPlannerDrawer() {
   const drawer = $('#planner-drawer');
   if (drawer) drawer.classList.toggle('plan-is-empty', total === 0);
   if (total === 0) {
-    // Compact empty state — no empty day cards (saves space, esp. mobile)
+    // Compact empty state — one-liner that fits in a thin band
     body.innerHTML = `
       <div class="planner-empty">
         <span class="planner-empty-emoji" aria-hidden="true">🧭</span>
-        <strong>まだ空っぽです</strong>
-        左のマップや、AIが提案するスポットの<br>「＋ プランへ」で旅の候補を集めましょう。
+        <span class="planner-empty-text">
+          <strong>まだ空っぽです</strong>
+          AIの提案や＋ボタンで気になる場所を集めましょう
+        </span>
       </div>
     `;
   } else {
