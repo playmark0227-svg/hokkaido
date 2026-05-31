@@ -154,7 +154,9 @@ function addToPlan(spotId, dayIndex = 0) {
   }
   state.plan.days[dayIndex].spotIds.push(spotId);
   onPlanChanged();
+  // Auto-open & expand so the user sees the addition confirmed
   openPlannerDrawer();
+  setPlannerCollapsed(false);
 }
 function removeFromPlan(spotId) {
   const idx = findSpotDayIndex(spotId);
@@ -330,11 +332,34 @@ function onPlanChanged() {
   updatePlanCount();
 }
 function updatePlanCount() {
-  const el = $('#plan-count');
-  if (!el) return;
   const n = planTotalCount();
-  el.textContent = n;
-  el.classList.toggle('is-empty', n === 0);
+  // Nav badge (mobile drawer toggle button — currently hidden)
+  const el = $('#plan-count');
+  if (el) {
+    el.textContent = n;
+    el.classList.toggle('is-empty', n === 0);
+  }
+  // Header inline count (shown next to "あなたのプラン")
+  const headCount = $('#planner-head-count');
+  if (headCount) {
+    headCount.textContent = n;
+    headCount.hidden = n === 0;
+  }
+}
+
+// ── Mobile pull-down: collapse / expand the planner ──
+function isMobileLayout() {
+  return window.matchMedia('(max-width: 960px)').matches;
+}
+function setPlannerCollapsed(collapsed) {
+  const d = $('#planner-drawer');
+  if (!d) return;
+  d.classList.toggle('is-collapsed', collapsed);
+}
+function togglePlannerCollapsed() {
+  const d = $('#planner-drawer');
+  if (!d) return;
+  d.classList.toggle('is-collapsed');
 }
 
 // ─────────────────────────────────────────────
@@ -1366,6 +1391,11 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPlannerDrawer();
   updatePlanCount();
 
+  // On mobile, collapse by default when empty (save space), expand if there
+  // are items (so the user sees their current plan / shared plan). Desktop
+  // ignores the class via CSS.
+  if (isMobileLayout()) setPlannerCollapsed(planTotalCount() === 0);
+
   // Chat form
   $('#chat-form')?.addEventListener('submit', handleSubmit);
   $('#chat-input')?.addEventListener('input', autosizeTextarea);
@@ -1397,6 +1427,24 @@ document.addEventListener('DOMContentLoaded', () => {
   $('#planner-share')?.addEventListener('click', copyShareLink);
   $('#planner-print')?.addEventListener('click', printPlan);
   $('#planner-review')?.addEventListener('click', reviewPlan);
+
+  // Mobile pull-down: tap the header to toggle collapse
+  $('#planner-head')?.addEventListener('click', (e) => {
+    // Don't collapse when clicking the close button
+    if (e.target.closest('#planner-close')) return;
+    if (!isMobileLayout()) return;
+    togglePlannerCollapsed();
+  });
+  // Re-evaluate default when the user rotates / resizes across the breakpoint
+  let wasMobile = isMobileLayout();
+  window.addEventListener('resize', () => {
+    const nowMobile = isMobileLayout();
+    if (nowMobile !== wasMobile) {
+      // Reset to a sensible default when crossing the breakpoint
+      setPlannerCollapsed(nowMobile && planTotalCount() === 0);
+      wasMobile = nowMobile;
+    }
+  });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
       closePlannerDrawer();

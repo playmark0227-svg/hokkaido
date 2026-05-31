@@ -3337,7 +3337,7 @@ body.drawer-open .planner-overlay {
     min-height: 0;
     /* Cap height so a long plan scrolls internally instead of
        pushing the chat off-screen. */
-    max-height: 36vh;
+    max-height: 42vh;
   }
   .planner-overlay {
     display: none !important;
@@ -3348,11 +3348,27 @@ body.drawer-open .planner-overlay {
   .plan-toggle-btn {
     display: none; /* planner is always visible inline */
   }
+  /* Header is the pull-down tab: tappable, shows count + chevron */
   .planner-head {
     padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
+  .planner-head:active { background: var(--c-orange); }
   .planner-head h2 {
     font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    flex: 1;
+  }
+  .planner-chevron {
+    display: inline-block;
+    font-family: "Yusei Magic", sans-serif;
+    font-size: 0.9rem;
+    color: var(--ink);
+    margin-left: 0.4rem;
+    transition: transform .25s;
   }
   .planner-body {
     padding: 0.55rem 0.7rem 0.65rem;
@@ -3368,6 +3384,22 @@ body.drawer-open .planner-overlay {
     font-size: 0.74rem;
     padding: 0.35rem 0.5rem;
   }
+
+  /* Pull-down COLLAPSED state — just the header bar visible */
+  .planner-drawer.is-collapsed {
+    max-height: none;
+  }
+  .planner-drawer.is-collapsed .planner-body,
+  .planner-drawer.is-collapsed .planner-foot {
+    display: none;
+  }
+  .planner-drawer.is-collapsed .planner-chevron {
+    transform: rotate(-90deg);
+  }
+  .planner-drawer.is-collapsed {
+    border-bottom: 3px solid var(--ink);
+  }
+
   /* When the plan is empty, shrink the panel to just the prompt */
   .planner-drawer.plan-is-empty {
     max-height: none;
@@ -3378,6 +3410,27 @@ body.drawer-open .planner-overlay {
   .planner-drawer.plan-is-empty .planner-empty {
     padding: 0.85rem 1rem;
   }
+}
+
+/* Desktop: chevron and the inline count badge are hidden */
+@media (min-width: 961px) {
+  .planner-chevron { display: none; }
+  .planner-head { cursor: default; }
+}
+
+/* Inline count badge in the header */
+.planner-head-count {
+  display: inline-block;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--c-red);
+  color: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  padding: 0.02rem 0.5rem;
+  margin-left: 0.5rem;
+  line-height: 1.35;
 }
 
 /* Hide planner foot whenever the plan is empty (all sizes) */
