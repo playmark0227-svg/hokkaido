@@ -3431,6 +3431,15 @@ body.drawer-open .planner-overlay {
   padding: 0.02rem 0.5rem;
   margin-left: 0.5rem;
   line-height: 1.35;
+  transition: transform .2s;
+}
+.planner-head-count.is-pulse {
+  animation: countPulse .55s ease-out;
+}
+@keyframes countPulse {
+  0%   { transform: scale(1);    background: var(--c-red);    box-shadow: 0 0 0 0 rgba(232,74,56,0.5); }
+  40%  { transform: scale(1.35); background: var(--c-yellow); color: var(--ink); box-shadow: 0 0 0 8px rgba(232,74,56,0); }
+  100% { transform: scale(1);    background: var(--c-red);    color: var(--paper); }
 }
 
 /* Hide planner foot whenever the plan is empty (all sizes) */

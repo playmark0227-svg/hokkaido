@@ -154,9 +154,19 @@ function addToPlan(spotId, dayIndex = 0) {
   }
   state.plan.days[dayIndex].spotIds.push(spotId);
   onPlanChanged();
-  // Auto-open & expand so the user sees the addition confirmed
-  openPlannerDrawer();
-  setPlannerCollapsed(false);
+  // On desktop, the panel is already always visible. On mobile, leave the
+  // collapsed/expanded state as the user set it — only nudge the count
+  // badge so the addition is noticeable.
+  pulseCountBadge();
+}
+
+function pulseCountBadge() {
+  const el = $('#planner-head-count');
+  if (!el) return;
+  el.classList.remove('is-pulse');
+  // force reflow so the animation restarts even on consecutive adds
+  void el.offsetWidth;
+  el.classList.add('is-pulse');
 }
 function removeFromPlan(spotId) {
   const idx = findSpotDayIndex(spotId);
@@ -1391,10 +1401,9 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPlannerDrawer();
   updatePlanCount();
 
-  // On mobile, collapse by default when empty (save space), expand if there
-  // are items (so the user sees their current plan / shared plan). Desktop
-  // ignores the class via CSS.
-  if (isMobileLayout()) setPlannerCollapsed(planTotalCount() === 0);
+  // On mobile, always start collapsed — the user opens it on demand.
+  // Desktop ignores the class via CSS.
+  if (isMobileLayout()) setPlannerCollapsed(true);
 
   // Chat form
   $('#chat-form')?.addEventListener('submit', handleSubmit);
@@ -1440,8 +1449,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     const nowMobile = isMobileLayout();
     if (nowMobile !== wasMobile) {
-      // Reset to a sensible default when crossing the breakpoint
-      setPlannerCollapsed(nowMobile && planTotalCount() === 0);
+      // Crossing the breakpoint: collapse on mobile, expand on desktop
+      setPlannerCollapsed(nowMobile);
       wasMobile = nowMobile;
     }
   });
