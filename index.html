@@ -28,7 +28,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <link rel="stylesheet" href="css/style.css?v=20260527p" />
+  <link rel="stylesheet" href="css/style.css?v=20260527q" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E" />
 
   <script type="application/ld+json">
@@ -128,28 +128,29 @@
               </svg>
             </div>
             <h1 class="welcome-title">北海道専門のAIプランナー</h1>
-            <p class="welcome-sub">行きたい場所・気分・日程を教えてください。<br>あなたにぴったりの旅程をご提案します。</p>
-            <p class="welcome-hint">下の例をワンクリックで表示、または下のチャット欄から自由にご相談ください。</p>
+            <p class="welcome-sub">どんな旅にしたいか、教えてください。<br>あなたにぴったりのスポットをご提案します。</p>
           </div>
 
-          <div class="welcome-examples" aria-label="例: クリックすると相談を始めます">
-            <button type="button" class="welcome-example" data-prompt="札幌に2泊3日で温泉とグルメを楽しみたい">
-              <strong>札幌に2泊3日</strong><span>温泉とグルメを楽しみたい</span>
+          <div class="welcome-entries" id="welcome-entries">
+            <button type="button" class="entry-tile entry-dates" data-entry="dates">
+              <span class="entry-emoji" aria-hidden="true">📅</span>
+              <span class="entry-label">日程から決める</span>
+              <span class="entry-sub">何泊・季節は?</span>
             </button>
-            <button type="button" class="welcome-example" data-prompt="知床と網走で大自然を満喫する3泊プランを組みたい">
-              <strong>知床・網走の3泊プラン</strong><span>大自然を満喫したい</span>
+            <button type="button" class="entry-tile entry-destination" data-entry="destination">
+              <span class="entry-emoji" aria-hidden="true">🗺</span>
+              <span class="entry-label">目的地から決める</span>
+              <span class="entry-sub">どこに行きたい?</span>
             </button>
-            <button type="button" class="welcome-example" data-prompt="家族で行ける札幌・小樽周辺のおすすめスポットを教えて">
-              <strong>家族で札幌・小樽旅</strong><span>子供連れで楽しめる場所</span>
+            <button type="button" class="entry-tile entry-food" data-entry="food">
+              <span class="entry-emoji" aria-hidden="true">🍜</span>
+              <span class="entry-label">グルメから決める</span>
+              <span class="entry-sub">何を食べたい?</span>
             </button>
-            <button type="button" class="welcome-example" data-prompt="冬の北海道で雪まつりとスキーリゾートを巡りたい">
-              <strong>冬の北海道</strong><span>雪まつりとスキーを満喫</span>
-            </button>
-            <button type="button" class="welcome-example" data-prompt="美瑛と富良野の花と景色を満喫する1泊2日">
-              <strong>美瑛・富良野の1泊2日</strong><span>花と景色を満喫</span>
-            </button>
-            <button type="button" class="welcome-example" data-prompt="函館の夜景と歴史散策の1泊2日プラン">
-              <strong>函館の1泊2日</strong><span>夜景と歴史散策</span>
+            <button type="button" class="entry-tile entry-experience" data-entry="experience">
+              <span class="entry-emoji" aria-hidden="true">⛷</span>
+              <span class="entry-label">体験から決める</span>
+              <span class="entry-sub">何をしたい?</span>
             </button>
           </div>
         </div>
@@ -209,9 +210,9 @@
   <!-- Print-only area (populated on print) -->
   <div id="print-area" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=20260527p"></script>
-  <script src="js/spots.js?v=20260527p"></script>
-  <script src="js/icons.js?v=20260527p"></script>
-  <script src="js/app.js?v=20260527p"></script>
+  <script src="js/config.js?v=20260527q"></script>
+  <script src="js/spots.js?v=20260527q"></script>
+  <script src="js/icons.js?v=20260527q"></script>
+  <script src="js/app.js?v=20260527q"></script>
 </body>
 </html>

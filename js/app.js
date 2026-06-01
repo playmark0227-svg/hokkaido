@@ -862,16 +862,223 @@ function resetToWelcome() {
   refreshHighlights();
   const thread = $('#chat-thread');
   thread.innerHTML = welcomeHTML || '';
-  $$('.welcome-example').forEach(wireExampleButton);
+  wireEntryTiles();
 }
-function wireExampleButton(btn) {
-  btn.addEventListener('click', () => {
-    const prompt = btn.dataset.prompt;
-    if (!prompt) return;
-    const demo = DEMO_PROPOSALS[prompt];
-    if (demo) runDemoFlow(prompt, demo);
-    else sendUserMessage(prompt);
+
+// ─────────────────────────────────────────────
+// Welcome entries (4 tiles → category pickers)
+// ─────────────────────────────────────────────
+function wireEntryTiles() {
+  $$('.entry-tile').forEach(tile => {
+    tile.addEventListener('click', () => showPicker(tile.dataset.entry));
   });
+}
+
+const PICKER_OPTIONS = {
+  // Pre-baked option sets. Each picker uses a subset.
+  nights: ['日帰り', '1泊2日', '2泊3日', '3泊4日', '4泊以上'],
+  season: [
+    { v: '春',     l: '🌸 春',   sub: '4〜5月' },
+    { v: '夏',     l: '☀ 夏',   sub: '6〜8月' },
+    { v: '秋',     l: '🍁 秋',   sub: '9〜10月' },
+    { v: '冬',     l: '⛄ 冬',   sub: '11〜3月' },
+    { v: '',       l: 'おまかせ', sub: '時期は柔軟に' },
+  ],
+  destinations: [
+    { v: '札幌',                  l: '🏙 札幌' },
+    { v: '小樽',                  l: '⛵ 小樽' },
+    { v: '函館',                  l: '🌃 函館' },
+    { v: '富良野・美瑛',          l: '🌸 富良野・美瑛' },
+    { v: 'ニセコ・倶知安',        l: '⛷ ニセコ' },
+    { v: '登別・洞爺',            l: '♨ 登別・洞爺' },
+    { v: '知床',                  l: '🐻 知床' },
+    { v: '網走・流氷エリア',      l: '🧊 網走' },
+    { v: '阿寒・摩周・釧路',      l: '🌲 阿寒・摩周' },
+    { v: '旭川・旭山動物園',      l: '🐧 旭川' },
+    { v: '稚内・利尻・礼文',      l: '🗻 稚内・利尻礼文' },
+  ],
+  foods: [
+    { v: '海鮮丼',          l: '🐟 海鮮丼' },
+    { v: '寿司',            l: '🍣 寿司' },
+    { v: 'ラーメン',        l: '🍜 ラーメン' },
+    { v: 'ジンギスカン',    l: '🥩 ジンギスカン' },
+    { v: 'スープカレー',    l: '🍛 スープカレー' },
+    { v: '蟹・甲殻類',      l: '🦀 蟹' },
+    { v: 'ジェラート・チーズ', l: '🧀 乳製品・チーズ' },
+    { v: 'メロン・果物',    l: '🍈 メロン・果物' },
+    { v: 'サッポロビール',  l: '🍺 ビール' },
+    { v: '富良野ワイン',    l: '🍷 ワイン' },
+    { v: 'ニッカウヰスキー', l: '🥃 ウイスキー' },
+    { v: 'スイーツ・お菓子', l: '🍰 スイーツ' },
+  ],
+  experiences: [
+    { v: '温泉',            l: '♨ 温泉巡り' },
+    { v: 'スキー・スノボ',  l: '⛷ スキー・スノボ' },
+    { v: 'ラベンダー畑',    l: '🌸 ラベンダー' },
+    { v: '流氷クルーズ',    l: '🧊 流氷' },
+    { v: '動物園・水族館',  l: '🐧 動物・水族館' },
+    { v: '夜景観賞',        l: '🌃 夜景' },
+    { v: '雪まつり',        l: '⛄ 雪まつり' },
+    { v: '自然・絶景巡り',  l: '🏞 自然・絶景' },
+    { v: '工場見学・体験',  l: '🏭 工場見学' },
+    { v: '街歩き・ショッピング', l: '🚶 街歩き' },
+    { v: 'アイヌ文化',      l: '🪶 アイヌ文化' },
+    { v: '釣り・カヌー',    l: '🎣 釣り・カヌー' },
+  ],
+};
+
+const PICKERS = {
+  dates: {
+    emoji: '📅',
+    title: '日程で旅を組む',
+    sections: [
+      { group: 'nights', label: '滞在日数', single: true,
+        options: PICKER_OPTIONS.nights.map(v => ({ v, l: v })) },
+      { group: 'season', label: 'いつ頃?', single: true,
+        options: PICKER_OPTIONS.season },
+    ],
+  },
+  destination: {
+    emoji: '🗺',
+    title: '目的地で旅を組む',
+    hint: '行きたいエリアを選んでください (複数可)',
+    sections: [
+      { group: 'area', label: '行きたいエリア', single: false,
+        options: PICKER_OPTIONS.destinations },
+    ],
+  },
+  food: {
+    emoji: '🍜',
+    title: 'グルメで旅を組む',
+    hint: '食べたいものを選んでください (複数可)',
+    sections: [
+      { group: 'food', label: '食べたいもの', single: false,
+        options: PICKER_OPTIONS.foods },
+    ],
+  },
+  experience: {
+    emoji: '⛷',
+    title: '体験で旅を組む',
+    hint: '気になる体験を選んでください (複数可)',
+    sections: [
+      { group: 'exp', label: '体験したいこと', single: false,
+        options: PICKER_OPTIONS.experiences },
+    ],
+  },
+};
+
+function showPicker(mode) {
+  const cfg = PICKERS[mode];
+  if (!cfg) return;
+  const w = $('#chat-welcome');
+  if (!w) return;
+  // For the destination picker on mobile, show the map full-screen so the
+  // user can see Hokkaido while picking areas
+  if (mode === 'destination' && isMobileLayout()) {
+    setTimeout(() => setMapExpanded(true), 120);
+  }
+  let html = `<div class="picker" data-mode="${mode}">`;
+  html += `<button type="button" class="picker-back" aria-label="戻る">← 戻る</button>`;
+  html += `<h2 class="picker-title">${cfg.emoji} ${escapeHtml(cfg.title)}</h2>`;
+  if (cfg.hint) html += `<p class="picker-hint">${escapeHtml(cfg.hint)}</p>`;
+  cfg.sections.forEach(sec => {
+    html += `<div class="picker-section">`;
+    if (sec.label) html += `<h3 class="picker-section-title">${escapeHtml(sec.label)}</h3>`;
+    html += `<div class="picker-chips" data-group="${sec.group}"${sec.single ? ' data-single="true"' : ''}>`;
+    sec.options.forEach(opt => {
+      html += `<button type="button" class="picker-chip" data-value="${escapeHtml(opt.v)}">`;
+      html += `<span class="picker-chip-label">${escapeHtml(opt.l)}</span>`;
+      if (opt.sub) html += `<span class="picker-chip-sub">${escapeHtml(opt.sub)}</span>`;
+      html += `</button>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `<button type="button" class="picker-submit" disabled>AIに提案してもらう →</button>`;
+  html += `</div>`;
+  w.innerHTML = html;
+  wirePicker();
+}
+
+function wirePicker() {
+  $$('.picker-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const group = chip.closest('.picker-chips');
+      if (group?.dataset.single === 'true') {
+        group.querySelectorAll('.picker-chip').forEach(c => c.classList.remove('is-selected'));
+        chip.classList.add('is-selected');
+      } else {
+        chip.classList.toggle('is-selected');
+      }
+      updatePickerSubmitState();
+    });
+  });
+  $('.picker-back')?.addEventListener('click', () => {
+    if (isMobileLayout()) setMapExpanded(false);
+    const w = $('#chat-welcome');
+    if (w && welcomeHTML) {
+      // Re-render the welcome entries (just the inner contents, keeping the container)
+      const tmp = document.createElement('div');
+      tmp.innerHTML = welcomeHTML;
+      const fresh = tmp.querySelector('#chat-welcome');
+      if (fresh) w.innerHTML = fresh.innerHTML;
+      wireEntryTiles();
+    }
+  });
+  $('.picker-submit')?.addEventListener('click', () => {
+    if (isMobileLayout()) setMapExpanded(false);
+    const prompt = buildPickerPrompt();
+    if (!prompt) return;
+    sendUserMessage(prompt);
+  });
+}
+
+function updatePickerSubmitState() {
+  const picker = $('.picker');
+  if (!picker) return;
+  const mode = picker.dataset.mode;
+  const cfg = PICKERS[mode];
+  if (!cfg) return;
+  // All single-select groups must have a selection; multi-select groups need ≥1
+  const ok = cfg.sections.every(sec => {
+    const g = picker.querySelector(`[data-group="${sec.group}"]`);
+    return g && g.querySelectorAll('.picker-chip.is-selected').length > 0;
+  });
+  const submit = $('.picker-submit');
+  if (submit) submit.disabled = !ok;
+}
+
+function buildPickerPrompt() {
+  const picker = $('.picker');
+  if (!picker) return '';
+  const mode = picker.dataset.mode;
+  const get = (g) => Array.from(picker.querySelectorAll(`[data-group="${g}"] .picker-chip.is-selected`))
+    .map(c => c.dataset.value).filter(v => v);
+  switch (mode) {
+    case 'dates': {
+      const nights = get('nights')[0] || '';
+      const season = get('season')[0] || '';
+      const parts = [];
+      if (season) parts.push(season + 'の');
+      if (nights) parts.push(nights + 'で');
+      return `${parts.join('')}北海道旅行をしたいので、おすすめのスポットを提案してください。`;
+    }
+    case 'destination': {
+      const areas = get('area');
+      if (!areas.length) return '';
+      return `${areas.join('・')} のエリアで観光したいので、おすすめのスポットを提案してください。`;
+    }
+    case 'food': {
+      const foods = get('food');
+      if (!foods.length) return '';
+      return `${foods.join('・')} を楽しめる北海道旅行にしたいので、おすすめのスポット (名店・産地・周辺観光) を提案してください。`;
+    }
+    case 'experience': {
+      const exps = get('exp');
+      if (!exps.length) return '';
+      return `${exps.join('・')} を体験できる北海道旅行にしたいので、おすすめのスポットを提案してください。`;
+    }
+  }
+  return '';
 }
 
 // ─────────────────────────────────────────────
@@ -1452,8 +1659,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Capture welcome HTML for later restore via "別の例を見る"
   captureWelcomeHTML();
 
-  // Welcome example chips — pre-baked demo flow (no API key required)
-  $$('.welcome-example').forEach(wireExampleButton);
+  // Welcome entry tiles (日程/目的地/グルメ/体験)
+  wireEntryTiles();
 
   // Map toggle (header eye icon)
   $('#toggle-map')?.addEventListener('click', toggleMap);
