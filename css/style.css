@@ -4153,10 +4153,19 @@ body.drawer-open .planner-overlay {
   .map-panel:not(.is-expanded) .leaflet-control-attribution {
     display: none !important;
   }
-  /* Hide individual spot pins on the thumbnail — they overlap into noisy
-     blobs at thumbnail zoom. Plan pins (numbered) and route lines stay. */
-  .map-panel:not(.is-expanded) .leaflet-marker-icon.spot-pin {
-    display: none !important;
+  /* Shrink spot pins on the thumbnail so the 64 markers don't clump
+     into giant blobs at low zoom. Plan pins (numbered) and route lines
+     stay full-size so the user's plan stands out. */
+  .map-panel:not(.is-expanded) .leaflet-marker-icon.spot-pin span {
+    width: 7px !important;
+    height: 7px !important;
+    border-width: 1px !important;
+    box-shadow: 0 0 0 var(--ink) !important;
+  }
+  .map-panel:not(.is-expanded) .leaflet-marker-icon.spot-pin.is-fav span {
+    width: 10px !important;
+    height: 10px !important;
+    border-width: 1.5px !important;
   }
   .map-pill { display: grid; place-items: center; }
   .map-pill-close { display: none; }
