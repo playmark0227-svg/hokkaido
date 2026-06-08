@@ -81,6 +81,7 @@ function dayTotals(day) {
 const PLAN_STORAGE_KEY = 'hokkaido_user_plan_v1';
 const MAX_TOOL_RECURSION = 5;
 const API_TIMEOUT_MS = 90_000;
+const MAX_HISTORY = 40; // Cap apiMessages so the request stays small/cheap
 
 function getApiUrl() {
   const proxyUrl = (window.ANTHROPIC_PROXY_URL || '').trim();
@@ -738,118 +739,6 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
   return { content: contentBlocks.filter(Boolean), stop_reason: stopReason };
 }
 
-// ─────────────────────────────────────────────
-// Demo proposals (no API key needed for the 6 example prompts)
-// 「こんなところどうですか?」というフラットなおすすめスポット
-// ─────────────────────────────────────────────
-const DEMO_PROPOSALS = {
-  "札幌に2泊3日で温泉とグルメを楽しみたい": {
-    title: "札幌でおすすめの温泉・グルメスポット",
-    intro: "札幌の街遊びから定山渓の温泉、ジンギスカンまで楽しめるラインナップです。気になるものをプランに追加してみてください。",
-    spots: [
-      { spot_id: "sapporo-clock-tower", comment: "札幌のシンボル。明治の建造物で写真映えも◎" },
-      { spot_id: "odori-park",          comment: "テレビ塔から眺める噴水と緑。市内中心の休憩スポット。" },
-      { spot_id: "sapporo-tv-tower",    comment: "展望台から札幌の街を一望。夜景もきれい。" },
-      { spot_id: "sapporo-beer",        comment: "サッポロビール園で名物ジンギスカンと出来立てビール。" },
-      { spot_id: "jozankei-onsen",      comment: "札幌からバスで70分。渓谷美と温泉で癒される名湯。" },
-      { spot_id: "hokkaido-shrine",     comment: "札幌の総鎮守。緑豊かな円山公園内に。" },
-      { spot_id: "maruyama-zoo",        comment: "ホッキョクグマやレッサーパンダに出会える人気動物園。" },
-      { spot_id: "shiroi-koibito-park", comment: "白い恋人の工場見学とお菓子作り体験ができるテーマパーク。" }
-    ]
-  },
-  "知床と網走で大自然を満喫する3泊プランを組みたい": {
-    title: "道東 大自然と神秘の絶景スポット",
-    intro: "世界自然遺産の知床から流氷の網走、神秘の湖まで。道東の自然をたっぷり楽しめる候補です。",
-    spots: [
-      { spot_id: "shiretoko",         comment: "世界自然遺産。クルーズで野生動物に出会えることも。" },
-      { spot_id: "shiretoko-goko",    comment: "原生林の中に点在する五つの湖。高架木道から知床連山を望む。" },
-      { spot_id: "oshinkoshin-falls", comment: "日本の滝百選。二筋に分かれて流れる姿が美しい。" },
-      { spot_id: "abashiri-drift-ice", comment: "冬の風物詩。流氷砕氷船「おーろら」で大自然の神秘を体験。" },
-      { spot_id: "abashiri-prison",   comment: "明治時代の監獄を移築復元した野外博物館。" },
-      { spot_id: "lake-mashu",        comment: "世界屈指の透明度を誇る神秘の湖。「霧の摩周湖」の幻想的な景色。" },
-      { spot_id: "lake-akan",         comment: "マリモの生息地。アイヌコタンの文化体験も。" }
-    ]
-  },
-  "家族で行ける札幌・小樽周辺のおすすめスポットを教えて": {
-    title: "家族で楽しめる札幌・小樽スポット",
-    intro: "子連れでも楽しめる動物園や工場見学、レトロな街並み散策の候補です。",
-    spots: [
-      { spot_id: "maruyama-zoo",        comment: "子供に大人気の動物園。ホッキョクグマの泳ぐ姿は必見。" },
-      { spot_id: "shiroi-koibito-park", comment: "お菓子作り体験ができるテーマパーク。お土産購入も。" },
-      { spot_id: "otaru-canal",         comment: "レトロな倉庫群とガス灯が美しい運河。クルーズも楽しめる。" },
-      { spot_id: "otaru-music-box",     comment: "世界中のオルゴールが並ぶ夢の空間。蒸気時計も必見。" },
-      { spot_id: "yoichi-distillery",   comment: "ニッカウヰスキー余市蒸溜所見学。大人向けに。" },
-      { spot_id: "sapporo-tv-tower",    comment: "展望台から札幌を一望。子供も大喜び。" }
-    ]
-  },
-  "冬の北海道で雪まつりとスキーリゾートを巡りたい": {
-    title: "冬の北海道 雪まつり&スキースポット",
-    intro: "札幌雪まつりからニセコのパウダースノー、温泉天国・登別まで。冬ならではの候補です。",
-    spots: [
-      { spot_id: "sapporo-snow-festival", comment: "2月の世界的祭典。巨大雪像のライトアップは圧巻。" },
-      { spot_id: "odori-park",            comment: "雪まつりメイン会場。屋台グルメも豊富。" },
-      { spot_id: "niseko",                comment: "世界有数のパウダースノー。アクティビティ豊富で滞在を楽しめる。" },
-      { spot_id: "noboribetsu-onsen",     comment: "9種類もの泉質を誇る日本屈指の温泉郷。" },
-      { spot_id: "jigokudani",            comment: "登別の象徴。雪景色と湯けむりが幻想的。" },
-      { spot_id: "sapporo-clock-tower",   comment: "札幌のシンボル。冬の雪化粧も絵になる。" }
-    ]
-  },
-  "美瑛と富良野の花と景色を満喫する1泊2日": {
-    title: "美瑛・富良野 花と絶景スポット",
-    intro: "ラベンダーから青い池まで、美瑛富良野の名所を集めました。",
-    spots: [
-      { spot_id: "furano-lavender",  comment: "ラベンダー畑の代表格。7月が見頃。" },
-      { spot_id: "furano",           comment: "ドラマ「北の国から」の舞台。チーズ工房やワインも。" },
-      { spot_id: "biei-blue-pond",   comment: "コバルトブルーに輝く幻想的な池。Apple Mac壁紙の名所。" },
-      { spot_id: "biei-patchwork",   comment: "色とりどりの畑が織りなす丘陵。CMの木々も。" },
-      { spot_id: "shirahige-falls",  comment: "岩の隙間から湧き出るブルーの水。青い池の上流。" }
-    ]
-  },
-  "函館の夜景と歴史散策の1泊2日プラン": {
-    title: "函館 夜景&歴史散策スポット",
-    intro: "世界三大夜景、星形要塞、レトロな元町エリアなど函館の王道候補です。",
-    spots: [
-      { spot_id: "goryokaku",                comment: "星形の城郭が美しい特別史跡。タワーから全景を。" },
-      { spot_id: "motomachi",                comment: "異国情緒あふれる坂の街。教会やレトロな洋館を巡る。" },
-      { spot_id: "kanemori-warehouse",       comment: "ベイエリアの赤レンガ倉庫群。ショッピングとカフェ。" },
-      { spot_id: "mt-hakodate",              comment: "世界三大夜景。扇形の夜景は息をのむ美しさ。" },
-      { spot_id: "hakodate-morning-market",  comment: "新鮮な海鮮丼の朝食。イカ釣り体験も。" },
-      { spot_id: "onuma-park",               comment: "駒ヶ岳を背景にした美しい湖沼群。" }
-    ]
-  }
-};
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-async function runDemoFlow(prompt, demo) {
-  if (state.isStreaming) return;
-  state.isStreaming = true;
-  setInputDisabled(true);
-
-  addUserMessage(prompt);
-  const typing = addTypingIndicator();
-  await sleep(700);
-  typing.remove();
-
-  addBotMessage('こんなところはいかがでしょうか?');
-  await sleep(400);
-  renderProposal(demo);
-  await sleep(500);
-
-  const closing = addBotMessage('');
-  closing.querySelector('.chat-bubble').innerHTML = `
-    気になるスポットがあれば「＋ プランへ」ボタンで右の「あなたのプラン」に追加できます。<br>
-    日程は自分で自由に組み立て可能です。<br>
-    <div class="bot-actions">
-      <button type="button" class="chip" data-action="back-to-examples">← 別の例を見る</button>
-    </div>
-  `;
-  closing.querySelector('[data-action="back-to-examples"]')?.addEventListener('click', resetToWelcome);
-
-  state.isStreaming = false;
-  setInputDisabled(false);
-}
-
 // Capture welcome HTML once so we can restore it
 let welcomeHTML = '';
 function captureWelcomeHTML() {
@@ -996,6 +885,9 @@ function showPicker(mode) {
   html += `<button type="button" class="picker-submit" disabled>AIに提案してもらう →</button>`;
   html += `</div>`;
   w.innerHTML = html;
+  // Make sure the picker is in view (chat thread might have been scrolled)
+  const thread = $('#chat-thread');
+  if (thread) thread.scrollTop = 0;
   wirePicker();
 }
 
@@ -1086,6 +978,15 @@ function buildPickerPrompt() {
 // ─────────────────────────────────────────────
 function ensureChatThread() {
   $('#chat-welcome')?.remove();
+}
+
+// Only auto-scroll the chat thread if the user is already near the bottom.
+// (Don't yank them away from older messages they were reading.)
+function scrollChatIfNear(threshold = 120) {
+  const t = $('#chat-thread');
+  if (!t) return;
+  const distance = t.scrollHeight - t.scrollTop - t.clientHeight;
+  if (distance < threshold) t.scrollTop = t.scrollHeight;
 }
 
 function addUserMessage(text) {
@@ -1276,6 +1177,25 @@ function refreshPlanAddButtons() {
 // ─────────────────────────────────────────────
 // Conversation loop
 // ─────────────────────────────────────────────
+// Keep the API conversation small + valid. Strips the oldest messages but
+// repairs the head so we never start with an orphaned tool_result.
+function trimHistory() {
+  const msgs = state.apiMessages;
+  if (msgs.length <= MAX_HISTORY) return;
+  state.apiMessages = msgs.slice(-MAX_HISTORY);
+  while (state.apiMessages.length) {
+    const first = state.apiMessages[0];
+    const hasToolResult = first?.role === 'user'
+      && Array.isArray(first.content)
+      && first.content.some(b => b?.type === 'tool_result');
+    if (first.role !== 'user' || hasToolResult) {
+      state.apiMessages.shift();
+      continue;
+    }
+    break;
+  }
+}
+
 async function sendUserMessage(text) {
   if (state.isStreaming) return;
   state.isStreaming = true;
@@ -1283,6 +1203,7 @@ async function sendUserMessage(text) {
 
   addUserMessage(text);
   state.apiMessages.push({ role: 'user', content: text });
+  trimHistory();
 
   await runAssistantTurn(0);
 
@@ -1315,7 +1236,8 @@ async function runAssistantTurn(depth) {
     if (!textEl) textEl = addBotMessage('');
     accumulated += delta;
     textEl.querySelector('.chat-bubble').innerHTML = escapeHtml(accumulated).replace(/\n/g, '<br>');
-    $('#chat-thread').scrollTop = $('#chat-thread').scrollHeight;
+    // Only follow the stream if the user hasn't scrolled away
+    scrollChatIfNear();
   };
 
   try {
