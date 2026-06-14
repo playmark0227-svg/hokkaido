@@ -1939,39 +1939,58 @@ body.map-hidden .map-panel { display: none; }
   line-height: 1.7;
 }
 
-/* Flow-dates: hide map & planner-drawer entirely on dates screen (focus). */
+/* ============================================================
+   FLOW LAYOUTS — authoritative rules for the 2-screen builder.
+   These intentionally use high specificity + !important so they win
+   over any leftover generic mobile rules further down the file.
+   ============================================================ */
+
+/* Flow-dates: hide map & planner; the dates form fills the panel. */
 body.flow-dates .map-panel,
 body.flow-dates .planner-drawer { display: none !important; }
-body.flow-dates .chat-layout { grid-template-columns: 1fr; }
+body.flow-dates .plan-toggle-btn,
+body.flow-dates #toggle-map { display: none !important; }
+body.flow-dates .chat-layout { grid-template-columns: 1fr !important; }
+@media (max-width: 960px) {
+  body.flow-dates .chat-layout {
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+  body.flow-dates .chat-panel { grid-row: 1 !important; }
+}
 
-/* Flow-builder on mobile: map big up top, builder below */
+/* Flow-builder on mobile: map big up top, builder fills the rest. */
 @media (max-width: 960px) {
   body.flow-builder .chat-layout {
-    grid-template-rows: 42vh 1fr;
-    grid-template-columns: 1fr;
+    grid-template-rows: 42vh minmax(0, 1fr) !important;
+    grid-template-columns: 1fr !important;
   }
   body.flow-builder .map-panel {
-    /* Cancel the floating-thumbnail position for builder mode */
+    /* Cancel the obsolete floating-thumbnail positioning */
     position: static !important;
     grid-row: 1 !important;
-    width: auto;
-    height: auto;
-    border: none;
-    border-bottom: 3px solid var(--ink);
-    border-radius: 0;
-    box-shadow: none;
-    z-index: auto;
-    cursor: default;
+    top: auto !important; right: auto !important;
+    left: auto !important; bottom: auto !important;
+    width: auto !important;
+    height: auto !important;
+    border: none !important;
+    border-bottom: 3px solid var(--ink) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    z-index: auto !important;
+    cursor: default !important;
+    transition: none !important;
   }
-  body.flow-builder .map-panel .map-overlay-legend { display: flex; }
+  body.flow-builder .map-panel .map-overlay-legend { display: flex !important; }
   body.flow-builder .map-panel .leaflet-control-zoom,
   body.flow-builder .map-panel .leaflet-control-attribution { display: block !important; }
   body.flow-builder .map-panel .leaflet-marker-icon.spot-pin span {
-    width: 18px !important; height: 18px !important; border-width: 2px !important;
+    width: 16px !important; height: 16px !important; border-width: 2px !important;
   }
-  body.flow-builder .map-pill { display: none !important; }
   body.flow-builder .chat-panel { grid-row: 2 !important; }
 }
+
+/* The floating-map pills + backdrop are obsolete in the 2-screen design. */
+.map-pill, .map-backdrop { display: none !important; }
 
 .chat-thread {
   flex: 1;
@@ -1985,120 +2004,7 @@ body.flow-dates .chat-layout { grid-template-columns: 1fr; }
 .chat-thread::-webkit-scrollbar { width: 6px; }
 .chat-thread::-webkit-scrollbar-thumb { background: var(--washi); border-radius: 3px; }
 
-/* ----- Welcome / example prompts ----- */
-.chat-welcome {
-  max-width: 720px;
-  width: 100%;
-  margin: auto;
-  padding: 2rem 0;
-  text-align: center;
-}
-.welcome-emblem {
-  display: inline-grid;
-  place-items: center;
-  width: 80px; height: 80px;
-  margin-bottom: 1rem;
-  border-radius: 50%;
-  background: var(--milk);
-  border: 3px solid var(--ink);
-  box-shadow: var(--pop);
-}
-.welcome-title {
-  font-family: "Yusei Magic", sans-serif;
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  color: var(--ink);
-  margin-bottom: 0.5rem;
-}
-.welcome-sub {
-  color: var(--ink-light);
-  font-family: "Klee One", sans-serif;
-  font-size: 0.95rem;
-  line-height: 1.85;
-  margin: 0 auto 1.8rem;
-  max-width: 460px;
-}
-.welcome-examples {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.8rem;
-  max-width: 640px;
-  margin: 0 auto;
-}
-.welcome-example {
-  background: var(--milk);
-  border: 2.5px solid var(--ink);
-  border-radius: 14px;
-  padding: 0.9rem 1rem;
-  text-align: left;
-  font-family: "Klee One", sans-serif;
-  cursor: pointer;
-  box-shadow: var(--pop-sm);
-  transition: all .15s;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  color: var(--ink);
-}
-.welcome-example:hover {
-  background: var(--c-yellow);
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--ink);
-}
-.welcome-example strong {
-  font-family: "Yusei Magic", sans-serif;
-  font-size: 0.96rem;
-  color: var(--ink);
-}
-.welcome-example span {
-  font-size: 0.82rem;
-  color: var(--ink-light);
-}
-
-/* ─── Welcome entries: 4 category tiles ───────────────── */
-.welcome-entries {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.85rem;
-  max-width: 560px;
-  margin: 0 auto;
-}
-.entry-tile {
-  background: var(--milk);
-  border: 2.5px solid var(--ink);
-  border-radius: 18px;
-  padding: 1.1rem 0.9rem 1rem;
-  font-family: "Yusei Magic", sans-serif;
-  font-weight: 400;
-  cursor: pointer;
-  box-shadow: var(--pop);
-  transition: all .15s;
-  color: var(--ink);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  text-align: center;
-  position: relative;
-}
-.entry-tile:nth-child(1) { background: rgba(245, 195, 66, 0.25); transform: rotate(-0.6deg); }
-.entry-tile:nth-child(2) { background: rgba(74, 141, 192, 0.2); transform: rotate(0.6deg); }
-.entry-tile:nth-child(3) { background: rgba(232, 74, 56, 0.18); transform: rotate(-0.4deg); }
-.entry-tile:nth-child(4) { background: rgba(111, 174, 82, 0.22); transform: rotate(0.4deg); }
-.entry-tile:hover {
-  background: var(--c-yellow);
-  transform: rotate(0) translate(1px, 1px);
-  box-shadow: var(--pop-sm);
-}
-.entry-emoji { font-size: 2rem; line-height: 1; }
-.entry-label { font-size: 1.02rem; color: var(--ink); }
-.entry-sub {
-  font-family: "Klee One", sans-serif;
-  font-size: 0.78rem;
-  color: var(--ink-light);
-  font-weight: 600;
-}
-
-/* ─── Pickers: category-specific selection screens ───── */
+/* ─── Picker chips (used by the dates screen + グルメ/体験 tabs) ─── */
 .picker {
   max-width: 640px;
   margin: 0 auto;
@@ -2222,54 +2128,14 @@ body.flow-dates .chat-layout { grid-template-columns: 1fr; }
   opacity: 0.7;
 }
 
-/* Mobile: compact welcome + horizontal scrolling examples */
+/* Mobile: compact picker chips (dates screen + topic tabs) */
 @media (max-width: 720px) {
-  .chat-thread { padding: 0.75rem 0.7rem 0.6rem; }
-  .chat-welcome { padding: 0.6rem 0 0.4rem; }
-  .welcome-hero { padding-inline: 0.6rem; }
-  .welcome-emblem { width: 48px; height: 48px; margin-bottom: 0.4rem; border-width: 2px; }
-  .welcome-emblem svg { width: 32px; height: 32px; }
-  .welcome-title { font-size: 1.05rem; margin-bottom: 0.3rem; line-height: 1.3; }
-  .welcome-sub { font-size: 0.78rem; line-height: 1.55; margin-bottom: 0.7rem; }
-  .welcome-hint { font-size: 0.72rem; line-height: 1.5; }
-  .welcome-examples {
-    display: flex;
-    grid-template-columns: none;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    gap: 0.5rem;
-    padding: 0.2rem 0.5rem;
-    margin-inline: -0.5rem;
-    max-width: none;
-  }
-  .welcome-examples::-webkit-scrollbar { display: none; }
-  .welcome-example {
-    flex: 0 0 auto;
-    width: 180px;
-    scroll-snap-align: start;
-    padding: 0.6rem 0.7rem;
-  }
-  .welcome-example strong { font-size: 0.84rem; }
-  .welcome-example span { font-size: 0.72rem; }
-
-  /* Entries on mobile: keep 2-column, smaller */
-  .welcome-entries { gap: 0.55rem; padding: 0 0.25rem; max-width: none; }
-  .entry-tile { padding: 0.75rem 0.55rem 0.65rem; gap: 0.2rem; border-width: 2px; box-shadow: 2.5px 2.5px 0 var(--ink); }
-  .entry-emoji { font-size: 1.55rem; }
-  .entry-label { font-size: 0.88rem; line-height: 1.25; }
-  .entry-sub { font-size: 0.68rem; }
-
-  /* Pickers on mobile */
   .picker { padding: 0.3rem; }
-  .picker-title { font-size: 1.05rem; }
-  .picker-hint { font-size: 0.78rem; margin-bottom: 0.8rem; }
   .picker-section { margin-bottom: 0.85rem; }
   .picker-section-title { font-size: 0.82rem; padding: 0.1rem 0.55rem; }
   .picker-chip { padding: 0.35rem 0.6rem; font-size: 0.78rem; border-width: 1.5px; box-shadow: 1.5px 1.5px 0 var(--ink); }
   .picker-chip-sub { font-size: 0.66rem; }
   .picker-submit { font-size: 0.9rem; padding: 0.55rem 1rem; border-width: 2px; }
-  .picker-back { font-size: 0.76rem; padding: 0.25rem 0.65rem; }
 }
 
 /* ----- Inline actions inside bot bubble (welcome / demo flow) ----- */
@@ -4450,117 +4316,29 @@ body.drawer-open .planner-overlay {
 }
 
 /* ── Phone (≤720px) — chat dominates, map floats as a tappable thumbnail ── */
+/* ── Phone (≤720px) — compact tweaks for the 2-screen builder ── */
 @media (max-width: 720px) {
-  /* Layout collapses to: just chat. Map floats, planner is a drawer. */
-  .chat-layout {
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-columns: 1fr;
-  }
-  body.map-hidden .chat-layout {
-    grid-template-rows: minmax(0, 1fr);
-  }
-  .chat-panel { grid-row: 1 !important; }
+  /* Builder screen 2: compact header / day picker / tabs */
+  .builder-header { padding: 0.4rem 0.5rem; }
+  .builder-summary { font-size: 0.76rem; }
+  .builder-back-btn { width: 28px; height: 28px; font-size: 0.9rem; }
+  .builder-day-picker { padding: 0.4rem 0.5rem; gap: 0.35rem; }
+  .day-chip { padding: 0.22rem 0.55rem; font-size: 0.78rem; }
+  .builder-tabs { padding: 0.35rem 0.4rem 0; gap: 0.2rem; }
+  .builder-tab { padding: 0.35rem 0.5rem; font-size: 0.72rem; gap: 0.2rem; }
+  .builder-tab-content { padding: 0.7rem 0.7rem 0.9rem; }
+  .tab-hint { font-size: 0.78rem; margin-bottom: 0.6rem; }
+  .area-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.45rem; }
+  .area-tile { padding: 0.45rem 0.55rem; gap: 0.35rem; }
+  .area-name { font-size: 0.86rem; }
 
-  /* Map: floating thumbnail (top-right, below the sticky header) */
-  .map-panel {
-    position: fixed !important;
-    grid-row: auto !important;
-    top: calc(var(--chat-header-h) + 10px);
-    right: 10px;
-    width: 170px;
-    height: 130px;
-    border: 2px solid var(--ink);
-    border-radius: 12px;
-    box-shadow: 2px 2px 0 var(--ink), 0 4px 10px rgba(0,0,0,0.15);
-    overflow: hidden;
-    z-index: 60;
-    cursor: pointer;
-    transition: top .3s, right .3s, width .3s, height .3s, border-radius .3s;
-  }
-  .map-panel .map-overlay-legend { display: none; }
-  /* Hide Leaflet's zoom controls and attribution on the thumbnail */
-  .map-panel:not(.is-expanded) .leaflet-control-zoom,
-  .map-panel:not(.is-expanded) .leaflet-control-attribution {
-    display: none !important;
-  }
-  /* Shrink spot pins on the thumbnail so the 64 markers don't clump
-     into giant blobs at low zoom. Plan pins (numbered) and route lines
-     stay full-size so the user's plan stands out. */
-  .map-panel:not(.is-expanded) .leaflet-marker-icon.spot-pin span {
-    width: 7px !important;
-    height: 7px !important;
-    border-width: 1px !important;
-    box-shadow: 0 0 0 var(--ink) !important;
-  }
-  .map-panel:not(.is-expanded) .leaflet-marker-icon.spot-pin.is-fav span {
-    width: 10px !important;
-    height: 10px !important;
-    border-width: 1.5px !important;
-  }
-  .map-pill { display: grid; place-items: center; }
-  .map-pill-close { display: none; }
-  .map-pill-expand {
-    position: absolute;
-    top: 5px; right: 5px;
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: var(--paper);
-    border: 1.5px solid var(--ink);
-    box-shadow: 1px 1px 0 var(--ink);
-    font-size: 0.75rem;
-    color: var(--ink);
-    z-index: 510;
-    cursor: pointer;
-    line-height: 1;
-  }
+  /* Dates screen: comfortable single column */
+  .screen-dates .screen-inner { padding: 1.1rem 0.9rem 1.6rem; }
+  .screen-emblem { width: 52px; height: 52px; }
+  .screen-title { font-size: 1.25rem; }
+  .screen-sub { font-size: 0.84rem; margin-bottom: 1.1rem; }
 
-  /* Expanded mode — near-fullscreen modal */
-  .map-panel.is-expanded {
-    top: 70px;
-    right: 8px;
-    left: 8px;
-    bottom: 70px;
-    width: auto;
-    height: auto;
-    z-index: 990;
-    border-radius: 14px;
-    border-width: 2.5px;
-    cursor: default;
-  }
-  .map-panel.is-expanded .map-overlay-legend { display: flex; }
-  .map-panel.is-expanded .map-pill-expand { display: none; }
-  .map-panel.is-expanded .map-pill-close {
-    display: grid; place-items: center;
-    position: absolute;
-    top: 6px; right: 6px;
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--c-red);
-    color: var(--paper);
-    border: 2px solid var(--ink);
-    box-shadow: 2px 2px 0 var(--ink);
-    font-size: 1.05rem;
-    z-index: 510;
-    cursor: pointer;
-    line-height: 1;
-  }
-  .map-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(61, 40, 23, 0.35);
-    z-index: 980;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity .25s;
-  }
-  body.map-expanded .map-backdrop {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  body.map-hidden .map-panel { display: none; }
-
-  /* Tight chat thread + thinner borders */
+  /* Chat thread (AI tab) + bubbles */
   .chat-thread { padding: 0.7rem 0.7rem 0.6rem; gap: 0.55rem; }
   .chat-bubble {
     font-size: 0.88rem;
@@ -4573,15 +4351,6 @@ body.drawer-open .planner-overlay {
   }
   .chat-avatar { width: 28px; height: 28px; font-size: 0.62rem; border-width: 1.5px; box-shadow: 1.5px 1.5px 0 var(--ink); }
   .chat-msg { gap: 0.35rem; }
-
-  /* Welcome screen leaves room for the floating map */
-  .chat-welcome { padding: 0.4rem 0 0.3rem; }
-  .welcome-hero { padding: 0.3rem 190px 0.3rem 0.5rem; text-align: left; min-height: 130px; }
-  .welcome-emblem { width: 40px; height: 40px; margin-bottom: 0.3rem; }
-  .welcome-emblem svg { width: 26px; height: 26px; }
-  .welcome-title { font-size: 1rem; margin-bottom: 0.2rem; }
-  .welcome-sub { font-size: 0.75rem; line-height: 1.5; margin-bottom: 0.45rem; max-width: none; }
-  .welcome-hint { font-size: 0.7rem; }
 
   .proposal-spots { grid-template-columns: 1fr; gap: 0.45rem; }
   .proposal-card { padding: 0.7rem 0.8rem 0.9rem; border-width: 2px; box-shadow: 2px 2px 0 var(--ink); }
@@ -4598,12 +4367,12 @@ body.drawer-open .planner-overlay {
   .spot-listing-meta { font-size: 0.66rem; }
   .spot-listing-comment { font-size: 0.74rem; padding: 0.2rem 0.4rem; }
 
-  /* Chat input: keep ≥16px font to avoid iOS zoom, thinner border */
+  /* Chat input (AI tab): ≥16px font to avoid iOS zoom */
   .chat-form { padding: 0.45rem 0.55rem 0.55rem; gap: 0.4rem; border-top-width: 1.5px; }
   .chat-textarea { min-height: 40px; padding: 0.5rem 0.75rem; border-radius: 11px; border-width: 2px; }
   .chat-send-btn { width: 40px; height: 40px; border-width: 2px; box-shadow: 1.5px 1.5px 0 var(--ink); }
 
-  /* Plan toggle button in nav: compact pill with badge */
+  /* Plan toggle button in nav */
   .plan-toggle-btn {
     padding: 0.3rem 0.65rem;
     font-size: 0.78rem;
@@ -4619,14 +4388,19 @@ body.drawer-open .planner-overlay {
 
 /* ── Small phone (≤430px) — squeeze further ── */
 @media (max-width: 430px) {
-  /* Map thumbnail: a bit smaller */
-  .map-panel { width: 140px; height: 105px; top: calc(var(--chat-header-h) + 8px); right: 8px; }
+  /* Builder map a touch shorter to leave room for the controls */
+  body.flow-builder .chat-layout { grid-template-rows: 38vh minmax(0, 1fr) !important; }
+  .builder-summary { font-size: 0.72rem; }
+  .day-chip { font-size: 0.74rem; padding: 0.2rem 0.5rem; }
+  .builder-tab { font-size: 0.68rem; padding: 0.32rem 0.42rem; }
+  .builder-tab span:not([aria-hidden]) { font-size: 0.68rem; }
+  .area-grid { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); }
+  .area-name { font-size: 0.82rem; }
+
+  .screen-title { font-size: 1.12rem; }
+  .picker-chip { padding: 0.32rem 0.55rem; font-size: 0.78rem; }
 
   .chat-bubble { font-size: 0.84rem; max-width: 88%; padding: 0.5rem 0.7rem; }
-  .welcome-title { font-size: 0.95rem; }
-  .welcome-sub { font-size: 0.72rem; }
-  .welcome-example { width: 155px; }
-  .welcome-hero { padding: 0.3rem 156px 0.3rem 0.4rem; min-height: 105px; }
 
   .planner-head h2 { font-size: 0.94rem; }
   .planner-subtitle { display: none; }

@@ -1428,8 +1428,7 @@ function toggleMap() {
   setTimeout(() => map?.invalidateSize(), 300);
 }
 
-// Mobile: map is a small floating thumbnail by default. Tap to expand to
-// a near-fullscreen modal; tap close (× / backdrop) to shrink back.
+// Enable/disable Leaflet interactions (used when the map panel resizes).
 function setMapInteractions(enabled) {
   if (!map) return;
   const m = enabled ? 'enable' : 'disable';
@@ -1437,21 +1436,6 @@ function setMapInteractions(enabled) {
     .forEach(k => { try { map[k]?.[m](); } catch (_) {} });
   if (map.tap) { try { map.tap[m](); } catch (_) {} }
 }
-function setMapExpanded(expanded) {
-  const panel = $('#map-panel');
-  if (!panel) return;
-  panel.classList.toggle('is-expanded', expanded);
-  document.body.classList.toggle('map-expanded', expanded);
-  setMapInteractions(expanded || !isMobileLayout());
-  setTimeout(() => {
-    map?.invalidateSize();
-    // When shrinking back to a thumbnail, re-fit Hokkaido so it stays useful
-    if (!expanded && isMobileLayout()) {
-      map?.fitBounds(HOKKAIDO_BOUNDS, { padding: [6, 6], maxZoom: 8 });
-    }
-  }, 280);
-}
-function toggleMapExpanded() { setMapExpanded(!$('#map-panel')?.classList.contains('is-expanded')); }
 
 // ─────────────────────────────────────────────
 // Planner Drawer
@@ -1695,33 +1679,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Map toggle (header eye icon)
   $('#toggle-map')?.addEventListener('click', toggleMap);
 
-  // Mobile: tap the small map to expand; tap the close pill / backdrop to shrink
-  $('#map-panel')?.addEventListener('click', (e) => {
-    if (!isMobileLayout()) return;
-    const panel = $('#map-panel');
-    // If clicking the close pill, collapse
-    if (e.target.closest('[data-map-close]')) { setMapExpanded(false); return; }
-    // Only auto-expand from the thumbnail state (when collapsed)
-    if (!panel.classList.contains('is-expanded')) {
-      e.stopPropagation();
-      setMapExpanded(true);
-    }
-  });
-  $('#map-backdrop')?.addEventListener('click', () => setMapExpanded(false));
-  // Default: thumbnail (no map interactions) on mobile
-  setTimeout(() => {
-    if (isMobileLayout()) setMapInteractions(false);
-  }, 700);
-
-  // When crossing the breakpoint, reset map interactions / expanded state
+  // In the 2-screen design the map is either hidden (dates) or a full,
+  // directly-interactive panel (builder) — no thumbnail/expand modal.
+  // Re-fit + re-measure on resize.
   window.addEventListener('resize', () => {
-    if (isMobileLayout()) {
-      const expanded = $('#map-panel')?.classList.contains('is-expanded');
-      setMapInteractions(!!expanded);
-    } else {
-      setMapExpanded(false);
-      setMapInteractions(true);
-    }
+    setMapInteractions(true);
+    setTimeout(() => {
+      map?.invalidateSize();
+      if (state.flow === 'builder') map?.fitBounds(HOKKAIDO_BOUNDS, { padding: [10, 10], maxZoom: 8 });
+    }, 200);
   });
 
   // Planner drawer wiring
