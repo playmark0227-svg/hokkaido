@@ -1643,6 +1643,336 @@ body.map-hidden .map-panel { display: none; }
   }
 }
 
+/* ============================================================
+   Builder screens (Screen 1 = dates, Screen 2 = builder/tabs)
+   ============================================================ */
+.screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.screen[hidden] { display: none; }
+
+/* Screen 1: dates — centered single-column form */
+.screen-dates .screen-inner {
+  max-width: 460px;
+  width: 100%;
+  margin: auto;
+  padding: 1.5rem 1rem 2rem;
+  text-align: center;
+  overflow-y: auto;
+}
+.screen-emblem {
+  display: inline-grid; place-items: center;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--milk);
+  border: 3px solid var(--ink);
+  box-shadow: var(--pop);
+  margin-bottom: 0.8rem;
+}
+.screen-title {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: clamp(1.4rem, 4vw, 1.8rem);
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 0.4rem;
+}
+.screen-sub {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.9rem;
+  color: var(--ink-light);
+  margin-bottom: 1.4rem;
+}
+.screen-dates .picker-section { text-align: left; margin-bottom: 1.2rem; }
+.screen-dates .picker-chips { justify-content: flex-start; }
+.screen-next-btn {
+  display: block;
+  width: 100%;
+  background: var(--c-red);
+  color: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 30px;
+  padding: 0.75rem 1.2rem;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  cursor: pointer;
+  box-shadow: var(--pop-sm);
+  transition: all .15s;
+  margin-top: 0.6rem;
+}
+.screen-next-btn:hover:not(:disabled) {
+  background: var(--c-yellow); color: var(--ink);
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+.screen-next-btn:disabled {
+  background: var(--washi); color: var(--ink-muted);
+  border-color: var(--ink-muted);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Screen 2: builder header */
+.builder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  background: var(--c-yellow);
+  border-bottom: 2px solid var(--ink);
+  flex-shrink: 0;
+}
+.builder-back-btn {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1rem;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  flex-shrink: 0;
+  line-height: 1;
+}
+.builder-back-btn:hover { background: var(--c-red); color: var(--paper); }
+.builder-summary {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Day picker row */
+.builder-day-picker {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--paper-warm);
+  border-bottom: 2px solid var(--ink);
+  flex-shrink: 0;
+}
+.builder-day-picker::-webkit-scrollbar { display: none; }
+.day-chip {
+  flex-shrink: 0;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 14px;
+  padding: 0.25rem 0.65rem;
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 400;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  line-height: 1.2;
+}
+.day-chip:hover { background: var(--c-yellow); }
+.day-chip.is-active { color: var(--paper); }
+.day-chip-count {
+  background: rgba(255,255,255,0.4);
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  padding: 0 0.35rem;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.day-chip-add { background: var(--c-yellow); }
+
+/* Tab bar */
+.builder-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.4rem 0.5rem 0;
+  background: var(--paper);
+  border-bottom: 2px solid var(--ink);
+  flex-shrink: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.builder-tabs::-webkit-scrollbar { display: none; }
+.builder-tab {
+  flex: 1 0 auto;
+  background: var(--milk);
+  border: 1.5px solid var(--ink);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  padding: 0.4rem 0.65rem;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.builder-tab:hover { background: var(--c-yellow); }
+.builder-tab.is-active {
+  background: var(--c-red);
+  color: var(--paper);
+}
+
+/* Tab body — each tab handles its own scroll */
+.builder-tab-body {
+  flex: 1;
+  min-height: 0;
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+.builder-tab-content {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  padding: 0.85rem 0.9rem 1rem;
+}
+.builder-tab-content[hidden] { display: none; }
+.builder-tab-content[data-tab-content="ai"] {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.builder-tab-content[data-tab-content="ai"] > .chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 0.9rem;
+}
+
+.tab-hint {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.82rem;
+  color: var(--ink-light);
+  margin-bottom: 0.7rem;
+  line-height: 1.5;
+}
+
+/* Destination tab: area grid + spot list */
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.55rem;
+}
+.area-tile {
+  background: var(--milk);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: all .15s;
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink);
+}
+.area-tile:hover { background: var(--c-yellow); transform: translate(1px,1px); box-shadow: 1px 1px 0 var(--ink); }
+.area-dot { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--ink); }
+.area-name { font-family: "Yusei Magic", sans-serif; font-size: 0.95rem; font-weight: 400; line-height: 1.2; }
+.area-count {
+  font-family: "Klee One", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-light);
+  background: var(--paper);
+  border: 1px solid var(--ink-muted);
+  border-radius: 8px;
+  padding: 0 0.35rem;
+}
+
+.area-back-btn {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  padding: 0.3rem 0.7rem;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  margin-bottom: 0.7rem;
+}
+.area-back-btn:hover { background: var(--c-yellow); }
+.area-title {
+  font-family: "Yusei Magic", sans-serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 0.55rem;
+}
+.area-spots {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.55rem;
+}
+
+/* AI tab placeholder */
+.ai-tab-intro {
+  text-align: center;
+  font-family: "Klee One", sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink-light);
+  padding: 1.5rem 1rem;
+  line-height: 1.7;
+}
+
+/* Flow-dates: hide map & planner-drawer entirely on dates screen (focus). */
+body.flow-dates .map-panel,
+body.flow-dates .planner-drawer { display: none !important; }
+body.flow-dates .chat-layout { grid-template-columns: 1fr; }
+
+/* Flow-builder on mobile: map big up top, builder below */
+@media (max-width: 960px) {
+  body.flow-builder .chat-layout {
+    grid-template-rows: 42vh 1fr;
+    grid-template-columns: 1fr;
+  }
+  body.flow-builder .map-panel {
+    /* Cancel the floating-thumbnail position for builder mode */
+    position: static !important;
+    grid-row: 1 !important;
+    width: auto;
+    height: auto;
+    border: none;
+    border-bottom: 3px solid var(--ink);
+    border-radius: 0;
+    box-shadow: none;
+    z-index: auto;
+    cursor: default;
+  }
+  body.flow-builder .map-panel .map-overlay-legend { display: flex; }
+  body.flow-builder .map-panel .leaflet-control-zoom,
+  body.flow-builder .map-panel .leaflet-control-attribution { display: block !important; }
+  body.flow-builder .map-panel .leaflet-marker-icon.spot-pin span {
+    width: 18px !important; height: 18px !important; border-width: 2px !important;
+  }
+  body.flow-builder .map-pill { display: none !important; }
+  body.flow-builder .chat-panel { grid-row: 2 !important; }
+}
+
 .chat-thread {
   flex: 1;
   overflow-y: auto;

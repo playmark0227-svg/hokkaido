@@ -28,7 +28,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Klee+One:wght@400;600&family=Yusei+Magic&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
-  <link rel="stylesheet" href="css/style.css?v=20260527t" />
+  <link rel="stylesheet" href="css/style.css?v=20260614a" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,12 88,80 12,80' fill='%23F5C342' stroke='%233D2817' stroke-width='6' stroke-linejoin='round'/%3E%3Cpolygon points='50,12 64,38 36,38' fill='%23FFF9EE' stroke='%233D2817' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E" />
 
   <script type="application/ld+json">
@@ -115,62 +115,91 @@
     </aside>
 
     <section class="chat-panel" id="chat" aria-label="AIプランナー">
-      <div class="chat-thread" id="chat-thread" role="log" aria-live="polite" aria-atomic="false">
 
-        <!-- Welcome view (replaced once user sends first message) -->
-        <div class="chat-welcome" id="chat-welcome">
-          <div class="welcome-hero">
-            <div class="welcome-emblem" aria-hidden="true">
-              <svg width="56" height="56" viewBox="0 0 100 100">
-                <polygon points="50,12 88,80 12,80" fill="#F5C342" stroke="#3D2817" stroke-width="5" stroke-linejoin="round"/>
-                <polygon points="50,12 64,38 36,38" fill="#FFF9EE" stroke="#3D2817" stroke-width="3.5" stroke-linejoin="round"/>
-                <circle cx="76" cy="22" r="6" fill="#E84A38" stroke="#3D2817" stroke-width="2.5"/>
-              </svg>
+      <!-- ─────────────────────────────────────────
+           Screen 1: Date setting
+           ───────────────────────────────────────── -->
+      <section class="screen screen-dates" id="screen-dates" data-screen="dates">
+        <div class="screen-inner">
+          <div class="screen-emblem" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 100 100">
+              <polygon points="50,12 88,80 12,80" fill="#F5C342" stroke="#3D2817" stroke-width="5" stroke-linejoin="round"/>
+              <polygon points="50,12 64,38 36,38" fill="#FFF9EE" stroke="#3D2817" stroke-width="3.5" stroke-linejoin="round"/>
+              <circle cx="76" cy="22" r="6" fill="#E84A38" stroke="#3D2817" stroke-width="2.5"/>
+            </svg>
+          </div>
+          <h1 class="screen-title">いつ旅に行きますか?</h1>
+          <p class="screen-sub">まずは日程を決めましょう。</p>
+
+          <div class="picker-section">
+            <h3 class="picker-section-title">滞在日数</h3>
+            <div class="picker-chips" data-group="nights" data-single="true">
+              <button type="button" class="picker-chip" data-value="日帰り"><span class="picker-chip-label">日帰り</span></button>
+              <button type="button" class="picker-chip" data-value="1泊2日"><span class="picker-chip-label">1泊2日</span></button>
+              <button type="button" class="picker-chip" data-value="2泊3日"><span class="picker-chip-label">2泊3日</span></button>
+              <button type="button" class="picker-chip" data-value="3泊4日"><span class="picker-chip-label">3泊4日</span></button>
+              <button type="button" class="picker-chip" data-value="4泊以上"><span class="picker-chip-label">4泊以上</span></button>
             </div>
-            <h1 class="welcome-title">北海道専門のAIプランナー</h1>
-            <p class="welcome-sub">どんな旅にしたいか、選んでください。</p>
           </div>
 
-          <div class="welcome-entries" id="welcome-entries">
-            <button type="button" class="entry-tile entry-dates" data-entry="dates">
-              <span class="entry-emoji" aria-hidden="true">📅</span>
-              <span class="entry-label">日程から決める</span>
-              <span class="entry-sub">何泊・季節は?</span>
-            </button>
-            <button type="button" class="entry-tile entry-destination" data-entry="destination">
-              <span class="entry-emoji" aria-hidden="true">🗺</span>
-              <span class="entry-label">目的地から決める</span>
-              <span class="entry-sub">どこに行きたい?</span>
-            </button>
-            <button type="button" class="entry-tile entry-food" data-entry="food">
-              <span class="entry-emoji" aria-hidden="true">🍜</span>
-              <span class="entry-label">グルメから決める</span>
-              <span class="entry-sub">何を食べたい?</span>
-            </button>
-            <button type="button" class="entry-tile entry-experience" data-entry="experience">
-              <span class="entry-emoji" aria-hidden="true">⛷</span>
-              <span class="entry-label">体験から決める</span>
-              <span class="entry-sub">何をしたい?</span>
-            </button>
+          <div class="picker-section">
+            <h3 class="picker-section-title">いつ頃?</h3>
+            <div class="picker-chips" data-group="season" data-single="true">
+              <button type="button" class="picker-chip" data-value="春"><span class="picker-chip-label">🌸 春</span><span class="picker-chip-sub">4〜5月</span></button>
+              <button type="button" class="picker-chip" data-value="夏"><span class="picker-chip-label">☀ 夏</span><span class="picker-chip-sub">6〜8月</span></button>
+              <button type="button" class="picker-chip" data-value="秋"><span class="picker-chip-label">🍁 秋</span><span class="picker-chip-sub">9〜10月</span></button>
+              <button type="button" class="picker-chip" data-value="冬"><span class="picker-chip-label">⛄ 冬</span><span class="picker-chip-sub">11〜3月</span></button>
+              <button type="button" class="picker-chip" data-value=""><span class="picker-chip-label">おまかせ</span></button>
+            </div>
+          </div>
+
+          <button type="button" class="screen-next-btn" id="dates-next-btn" disabled>行きたい場所を選ぶ →</button>
+        </div>
+      </section>
+
+      <!-- ─────────────────────────────────────────
+           Screen 2: Builder (map dominates above, tabs below)
+           ───────────────────────────────────────── -->
+      <section class="screen screen-builder" id="screen-builder" data-screen="builder" hidden>
+        <div class="builder-header">
+          <button type="button" class="builder-back-btn" id="builder-back-btn" aria-label="日程に戻る">←</button>
+          <div class="builder-summary" id="builder-summary">日程: -</div>
+        </div>
+        <div class="builder-day-picker" id="builder-day-picker"></div>
+        <nav class="builder-tabs" id="builder-tabs" role="tablist">
+          <button type="button" class="builder-tab is-active" data-tab="destination" role="tab"><span aria-hidden="true">🗺</span><span>目的地</span></button>
+          <button type="button" class="builder-tab" data-tab="food" role="tab"><span aria-hidden="true">🍜</span><span>グルメ</span></button>
+          <button type="button" class="builder-tab" data-tab="experience" role="tab"><span aria-hidden="true">⛷</span><span>体験</span></button>
+          <button type="button" class="builder-tab" data-tab="ai" role="tab"><span aria-hidden="true">🧠</span><span>AI提案</span></button>
+        </nav>
+        <div class="builder-tab-body" id="builder-tab-body">
+          <div class="builder-tab-content" data-tab-content="destination"></div>
+          <div class="builder-tab-content" data-tab-content="food" hidden></div>
+          <div class="builder-tab-content" data-tab-content="experience" hidden></div>
+          <div class="builder-tab-content" data-tab-content="ai" hidden>
+            <div class="chat-thread" id="chat-thread" role="log" aria-live="polite" aria-atomic="false">
+              <div class="ai-tab-intro" id="ai-tab-intro">
+                <p>気になることをAIに直接聞けます。<br>例: 「子連れにおすすめの場所は?」「3日目の夜どこ行く?」</p>
+              </div>
+            </div>
           </div>
         </div>
+        <form class="chat-form" id="chat-form" autocomplete="off" hidden>
+          <textarea
+            id="chat-input"
+            class="chat-textarea"
+            rows="1"
+            placeholder="例: 札幌から函館への移動中におすすめのスポットは?"
+            aria-label="AIへの質問を入力"></textarea>
+          <button type="submit" id="chat-send" class="chat-send-btn" aria-label="送信">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none"/>
+            </svg>
+          </button>
+        </form>
+      </section>
 
-      </div>
-
-      <form class="chat-form" id="chat-form" autocomplete="off">
-        <textarea
-          id="chat-input"
-          class="chat-textarea"
-          rows="1"
-          placeholder="例: 札幌に2泊で温泉とグルメ、子供連れで…"
-          aria-label="AIへの質問を入力"></textarea>
-        <button type="submit" id="chat-send" class="chat-send-btn" aria-label="送信">
-          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="22" y1="2" x2="11" y2="13"/>
-            <polygon points="22 2 15 22 11 13 2 9 22 2" fill="currentColor" stroke="none"/>
-          </svg>
-        </button>
-      </form>
     </section>
 
     <!-- ===== Planner panel (always visible on desktop, collapsible on mobile) ===== -->
@@ -210,9 +239,9 @@
   <!-- Print-only area (populated on print) -->
   <div id="print-area" aria-hidden="true"></div>
 
-  <script src="js/config.js?v=20260527t"></script>
-  <script src="js/spots.js?v=20260527t"></script>
-  <script src="js/icons.js?v=20260527t"></script>
-  <script src="js/app.js?v=20260527t"></script>
+  <script src="js/config.js?v=20260614a"></script>
+  <script src="js/spots.js?v=20260614a"></script>
+  <script src="js/icons.js?v=20260614a"></script>
+  <script src="js/app.js?v=20260614a"></script>
 </body>
 </html>

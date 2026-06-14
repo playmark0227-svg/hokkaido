@@ -79,9 +79,19 @@ function dayTotals(day) {
 }
 
 const PLAN_STORAGE_KEY = 'hokkaido_user_plan_v1';
+const TRIP_DATES_STORAGE_KEY = 'hokkaido_trip_dates_v1';
 const MAX_TOOL_RECURSION = 5;
 const API_TIMEOUT_MS = 90_000;
 const MAX_HISTORY = 40; // Cap apiMessages so the request stays small/cheap
+
+// Mapping of nights label → number of days the plan should have
+const NIGHTS_TO_DAYS = {
+  '日帰り':  1,
+  '1泊2日': 2,
+  '2泊3日': 3,
+  '3泊4日': 4,
+  '4泊以上': 5,
+};
 
 function getApiUrl() {
   const proxyUrl = (window.ANTHROPIC_PROXY_URL || '').trim();
@@ -97,6 +107,9 @@ const state = {
   isStreaming: false,
   highlightedSpotIds: new Set(),
   plan: { days: [] },
+  flow: 'dates',                                       // 'dates' | 'builder'
+  tripDates: null,                                     // { nights, season } once set
+  builder: { tab: 'destination', activeDayIdx: 0, selectedArea: null },
 };
 
 // ─────────────────────────────────────────────
@@ -134,6 +147,44 @@ function loadPlan() {
   } catch (_) {
     state.plan = defaultPlan();
   }
+}
+
+function loadTripDates() {
+  const raw = safeStorageGet(TRIP_DATES_STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.nights === 'string') {
+      state.tripDates = { nights: parsed.nights, season: parsed.season || '' };
+    }
+  } catch (_) {}
+}
+function saveTripDates() {
+  try { localStorage.setItem(TRIP_DATES_STORAGE_KEY, JSON.stringify(state.tripDates)); } catch (_) {}
+}
+// Resize the plan to match nights (only when growing — never destroys existing spots).
+function ensurePlanDays(targetDays) {
+  while (state.plan.days.length < targetDays) {
+    state.plan.days.push({ id: newDayId(), spotIds: [] });
+  }
+}
+
+// Switch top-level screen. Updates body class so CSS can swap layouts.
+function switchScreen(name) {
+  state.flow = name;
+  document.body.classList.toggle('flow-dates',    name === 'dates');
+  document.body.classList.toggle('flow-builder',  name === 'builder');
+  $$('.screen').forEach(s => { s.hidden = (s.dataset.screen !== name); });
+  // Map size changes between screens — re-measure + adjust interactions
+  setTimeout(() => {
+    map?.invalidateSize();
+    if (name === 'builder') {
+      // In builder mode the map is a full panel — enable interactions
+      setMapInteractions(true);
+      // Re-fit Hokkaido after the panel resize
+      map?.fitBounds(HOKKAIDO_BOUNDS, { padding: [10, 10], maxZoom: 8 });
+    }
+  }, 280);
 }
 function savePlan() {
   try { localStorage.setItem(PLAN_STORAGE_KEY, JSON.stringify(state.plan)); } catch (_) {}
@@ -341,6 +392,11 @@ function onPlanChanged() {
   renderPlanOnMap();
   refreshPlanAddButtons();
   updatePlanCount();
+  // Builder UI (only rendered if we're on the builder screen)
+  if (state.flow === 'builder') {
+    renderBuilderHeader();
+    renderDayPicker();
+  }
 }
 function updatePlanCount() {
   const n = planTotalCount();
@@ -739,245 +795,285 @@ async function callClaudeStream({ system, tools, messages, onTextDelta }) {
   return { content: contentBlocks.filter(Boolean), stop_reason: stopReason };
 }
 
-// Capture welcome HTML once so we can restore it
-let welcomeHTML = '';
-function captureWelcomeHTML() {
-  const w = $('#chat-welcome');
-  if (w && !welcomeHTML) welcomeHTML = w.outerHTML;
-}
-function resetToWelcome() {
-  state.apiMessages = [];
-  state.highlightedSpotIds = new Set();
-  refreshHighlights();
-  const thread = $('#chat-thread');
-  thread.innerHTML = welcomeHTML || '';
-  wireEntryTiles();
-}
+// ─────────────────────────────────────────────
+// Builder topic chips (used by グルメ / 体験 tabs)
+// ─────────────────────────────────────────────
+const TOPIC_FOODS = [
+  { v: '海鮮丼',          l: '🐟 海鮮丼' },
+  { v: '寿司',            l: '🍣 寿司' },
+  { v: 'ラーメン',        l: '🍜 ラーメン' },
+  { v: 'ジンギスカン',    l: '🥩 ジンギスカン' },
+  { v: 'スープカレー',    l: '🍛 スープカレー' },
+  { v: '蟹・甲殻類',      l: '🦀 蟹' },
+  { v: 'ジェラート・チーズ', l: '🧀 乳製品・チーズ' },
+  { v: 'メロン・果物',    l: '🍈 メロン・果物' },
+  { v: 'サッポロビール',  l: '🍺 ビール' },
+  { v: '富良野ワイン',    l: '🍷 ワイン' },
+  { v: 'ニッカウヰスキー', l: '🥃 ウイスキー' },
+  { v: 'スイーツ・お菓子', l: '🍰 スイーツ' },
+];
+const TOPIC_EXPERIENCES = [
+  { v: '温泉',            l: '♨ 温泉巡り' },
+  { v: 'スキー・スノボ',  l: '⛷ スキー・スノボ' },
+  { v: 'ラベンダー畑',    l: '🌸 ラベンダー' },
+  { v: '流氷クルーズ',    l: '🧊 流氷' },
+  { v: '動物園・水族館',  l: '🐧 動物・水族館' },
+  { v: '夜景観賞',        l: '🌃 夜景' },
+  { v: '雪まつり',        l: '⛄ 雪まつり' },
+  { v: '自然・絶景巡り',  l: '🏞 自然・絶景' },
+  { v: '工場見学・体験',  l: '🏭 工場見学' },
+  { v: '街歩き・ショッピング', l: '🚶 街歩き' },
+  { v: 'アイヌ文化',      l: '🪶 アイヌ文化' },
+  { v: '釣り・カヌー',    l: '🎣 釣り・カヌー' },
+];
+
+// Pre-compute area → spots map (data-driven 目的地 tab)
+const SPOTS_BY_AREA = SPOTS.reduce((acc, s) => {
+  if (!s.area) return acc;
+  (acc[s.area] = acc[s.area] || []).push(s);
+  return acc;
+}, {});
+const AREAS_SORTED = Object.entries(SPOTS_BY_AREA)
+  .map(([area, ss]) => ({ area, region: ss[0].region, count: ss.length }))
+  .sort((a, b) => b.count - a.count);
 
 // ─────────────────────────────────────────────
-// Welcome entries (4 tiles → category pickers)
+// Dates screen (Screen 1)
 // ─────────────────────────────────────────────
-function wireEntryTiles() {
-  $$('.entry-tile').forEach(tile => {
-    tile.addEventListener('click', () => showPicker(tile.dataset.entry));
-  });
-}
-
-const PICKER_OPTIONS = {
-  // Pre-baked option sets. Each picker uses a subset.
-  nights: ['日帰り', '1泊2日', '2泊3日', '3泊4日', '4泊以上'],
-  season: [
-    { v: '春',     l: '🌸 春',   sub: '4〜5月' },
-    { v: '夏',     l: '☀ 夏',   sub: '6〜8月' },
-    { v: '秋',     l: '🍁 秋',   sub: '9〜10月' },
-    { v: '冬',     l: '⛄ 冬',   sub: '11〜3月' },
-    { v: '',       l: 'おまかせ', sub: '時期は柔軟に' },
-  ],
-  destinations: [
-    { v: '札幌',                  l: '🏙 札幌' },
-    { v: '小樽',                  l: '⛵ 小樽' },
-    { v: '函館',                  l: '🌃 函館' },
-    { v: '富良野・美瑛',          l: '🌸 富良野・美瑛' },
-    { v: 'ニセコ・倶知安',        l: '⛷ ニセコ' },
-    { v: '登別・洞爺',            l: '♨ 登別・洞爺' },
-    { v: '知床',                  l: '🐻 知床' },
-    { v: '網走・流氷エリア',      l: '🧊 網走' },
-    { v: '阿寒・摩周・釧路',      l: '🌲 阿寒・摩周' },
-    { v: '旭川・旭山動物園',      l: '🐧 旭川' },
-    { v: '稚内・利尻・礼文',      l: '🗻 稚内・利尻礼文' },
-  ],
-  foods: [
-    { v: '海鮮丼',          l: '🐟 海鮮丼' },
-    { v: '寿司',            l: '🍣 寿司' },
-    { v: 'ラーメン',        l: '🍜 ラーメン' },
-    { v: 'ジンギスカン',    l: '🥩 ジンギスカン' },
-    { v: 'スープカレー',    l: '🍛 スープカレー' },
-    { v: '蟹・甲殻類',      l: '🦀 蟹' },
-    { v: 'ジェラート・チーズ', l: '🧀 乳製品・チーズ' },
-    { v: 'メロン・果物',    l: '🍈 メロン・果物' },
-    { v: 'サッポロビール',  l: '🍺 ビール' },
-    { v: '富良野ワイン',    l: '🍷 ワイン' },
-    { v: 'ニッカウヰスキー', l: '🥃 ウイスキー' },
-    { v: 'スイーツ・お菓子', l: '🍰 スイーツ' },
-  ],
-  experiences: [
-    { v: '温泉',            l: '♨ 温泉巡り' },
-    { v: 'スキー・スノボ',  l: '⛷ スキー・スノボ' },
-    { v: 'ラベンダー畑',    l: '🌸 ラベンダー' },
-    { v: '流氷クルーズ',    l: '🧊 流氷' },
-    { v: '動物園・水族館',  l: '🐧 動物・水族館' },
-    { v: '夜景観賞',        l: '🌃 夜景' },
-    { v: '雪まつり',        l: '⛄ 雪まつり' },
-    { v: '自然・絶景巡り',  l: '🏞 自然・絶景' },
-    { v: '工場見学・体験',  l: '🏭 工場見学' },
-    { v: '街歩き・ショッピング', l: '🚶 街歩き' },
-    { v: 'アイヌ文化',      l: '🪶 アイヌ文化' },
-    { v: '釣り・カヌー',    l: '🎣 釣り・カヌー' },
-  ],
-};
-
-const PICKERS = {
-  dates: {
-    emoji: '📅',
-    title: '日程で旅を組む',
-    sections: [
-      { group: 'nights', label: '滞在日数', single: true,
-        options: PICKER_OPTIONS.nights.map(v => ({ v, l: v })) },
-      { group: 'season', label: 'いつ頃?', single: true,
-        options: PICKER_OPTIONS.season },
-    ],
-  },
-  destination: {
-    emoji: '🗺',
-    title: '目的地で旅を組む',
-    hint: '行きたいエリアを選んでください (複数可)',
-    sections: [
-      { group: 'area', label: '行きたいエリア', single: false,
-        options: PICKER_OPTIONS.destinations },
-    ],
-  },
-  food: {
-    emoji: '🍜',
-    title: 'グルメで旅を組む',
-    hint: '食べたいものを選んでください (複数可)',
-    sections: [
-      { group: 'food', label: '食べたいもの', single: false,
-        options: PICKER_OPTIONS.foods },
-    ],
-  },
-  experience: {
-    emoji: '⛷',
-    title: '体験で旅を組む',
-    hint: '気になる体験を選んでください (複数可)',
-    sections: [
-      { group: 'exp', label: '体験したいこと', single: false,
-        options: PICKER_OPTIONS.experiences },
-    ],
-  },
-};
-
-function showPicker(mode) {
-  const cfg = PICKERS[mode];
-  if (!cfg) return;
-  const w = $('#chat-welcome');
-  if (!w) return;
-  // For the destination picker on mobile, show the map full-screen so the
-  // user can see Hokkaido while picking areas
-  if (mode === 'destination' && isMobileLayout()) {
-    setTimeout(() => setMapExpanded(true), 120);
-  }
-  let html = `<div class="picker" data-mode="${mode}">`;
-  html += `<button type="button" class="picker-back" aria-label="戻る">← 戻る</button>`;
-  html += `<h2 class="picker-title">${cfg.emoji} ${escapeHtml(cfg.title)}</h2>`;
-  if (cfg.hint) html += `<p class="picker-hint">${escapeHtml(cfg.hint)}</p>`;
-  cfg.sections.forEach(sec => {
-    html += `<div class="picker-section">`;
-    if (sec.label) html += `<h3 class="picker-section-title">${escapeHtml(sec.label)}</h3>`;
-    html += `<div class="picker-chips" data-group="${sec.group}"${sec.single ? ' data-single="true"' : ''}>`;
-    sec.options.forEach(opt => {
-      html += `<button type="button" class="picker-chip" data-value="${escapeHtml(opt.v)}">`;
-      html += `<span class="picker-chip-label">${escapeHtml(opt.l)}</span>`;
-      if (opt.sub) html += `<span class="picker-chip-sub">${escapeHtml(opt.sub)}</span>`;
-      html += `</button>`;
-    });
-    html += `</div></div>`;
-  });
-  html += `<button type="button" class="picker-submit" disabled>AIに提案してもらう →</button>`;
-  html += `</div>`;
-  w.innerHTML = html;
-  // Make sure the picker is in view (chat thread might have been scrolled)
-  const thread = $('#chat-thread');
-  if (thread) thread.scrollTop = 0;
-  wirePicker();
-}
-
-function wirePicker() {
-  $$('.picker-chip').forEach(chip => {
+function wireDatesScreen() {
+  const root = $('#screen-dates');
+  if (!root) return;
+  root.querySelectorAll('.picker-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       const group = chip.closest('.picker-chips');
       if (group?.dataset.single === 'true') {
         group.querySelectorAll('.picker-chip').forEach(c => c.classList.remove('is-selected'));
-        chip.classList.add('is-selected');
-      } else {
-        chip.classList.toggle('is-selected');
       }
-      updatePickerSubmitState();
+      chip.classList.add('is-selected');
+      updateDatesNextState();
     });
   });
-  $('.picker-back')?.addEventListener('click', () => {
-    if (isMobileLayout()) setMapExpanded(false);
-    const w = $('#chat-welcome');
-    if (w && welcomeHTML) {
-      // Re-render the welcome entries (just the inner contents, keeping the container)
-      const tmp = document.createElement('div');
-      tmp.innerHTML = welcomeHTML;
-      const fresh = tmp.querySelector('#chat-welcome');
-      if (fresh) w.innerHTML = fresh.innerHTML;
-      wireEntryTiles();
-    }
+  $('#dates-next-btn')?.addEventListener('click', () => {
+    const nightsChip = root.querySelector('[data-group="nights"] .picker-chip.is-selected');
+    const seasonChip = root.querySelector('[data-group="season"] .picker-chip.is-selected');
+    if (!nightsChip) return;
+    state.tripDates = {
+      nights: nightsChip.dataset.value,
+      season: seasonChip ? seasonChip.dataset.value : '',
+    };
+    saveTripDates();
+    ensurePlanDays(NIGHTS_TO_DAYS[state.tripDates.nights] || 3);
+    onPlanChanged();
+    goToBuilder();
   });
-  $('.picker-submit')?.addEventListener('click', () => {
-    if (isMobileLayout()) setMapExpanded(false);
-    const prompt = buildPickerPrompt();
-    if (!prompt) return;
+
+  // If tripDates was loaded from storage, pre-select the chips
+  if (state.tripDates) {
+    root.querySelector(`[data-group="nights"] [data-value="${state.tripDates.nights}"]`)?.classList.add('is-selected');
+    const sSel = `[data-group="season"] [data-value="${state.tripDates.season ?? ''}"]`;
+    root.querySelector(sSel)?.classList.add('is-selected');
+    updateDatesNextState();
+  }
+}
+function updateDatesNextState() {
+  const root = $('#screen-dates');
+  if (!root) return;
+  const nightsOk = !!root.querySelector('[data-group="nights"] .picker-chip.is-selected');
+  const seasonOk = !!root.querySelector('[data-group="season"] .picker-chip.is-selected');
+  const btn = $('#dates-next-btn');
+  if (btn) btn.disabled = !(nightsOk && seasonOk);
+}
+
+function goToBuilder() {
+  switchScreen('builder');
+  renderBuilderHeader();
+  renderDayPicker();
+  setActiveTab(state.builder.tab || 'destination');
+}
+
+// ─────────────────────────────────────────────
+// Builder screen (Screen 2) — summary + day picker + tabs
+// ─────────────────────────────────────────────
+function renderBuilderHeader() {
+  const el = $('#builder-summary');
+  if (!el) return;
+  const t = state.tripDates;
+  let summary = t ? `${t.season ? t.season + 'の' : ''}${t.nights}` : '日程: -';
+  // Total travel across all days
+  let totalKm = 0, totalMin = 0;
+  state.plan.days.forEach(d => {
+    const tt = dayTotals(d);
+    totalKm += tt.km; totalMin += tt.min;
+  });
+  if (totalKm > 0) summary += `・移動 ${formatKm(totalKm)} / ${formatDuration(totalMin)}`;
+  el.textContent = summary;
+}
+
+function renderDayPicker() {
+  const el = $('#builder-day-picker');
+  if (!el) return;
+  let html = '';
+  state.plan.days.forEach((day, i) => {
+    const color = DAY_COLORS[i % DAY_COLORS.length];
+    const count = day.spotIds.length;
+    const isActive = i === state.builder.activeDayIdx;
+    html += `<button type="button" class="day-chip${isActive ? ' is-active' : ''}" data-day="${i}" style="${isActive ? `background:${color};color:#fff;border-color:${color};` : ''}">`;
+    html += `DAY ${i + 1}`;
+    if (count > 0) html += ` <span class="day-chip-count">${count}</span>`;
+    html += `</button>`;
+  });
+  html += `<button type="button" class="day-chip day-chip-add" id="day-chip-add" title="日を追加">＋</button>`;
+  el.innerHTML = html;
+  el.querySelectorAll('[data-day]').forEach(b => {
+    b.addEventListener('click', () => {
+      state.builder.activeDayIdx = Number(b.dataset.day);
+      renderDayPicker();
+    });
+  });
+  $('#day-chip-add')?.addEventListener('click', () => {
+    addDay();
+    state.builder.activeDayIdx = state.plan.days.length - 1;
+    renderDayPicker();
+  });
+}
+
+function setActiveTab(tab) {
+  state.builder.tab = tab;
+  $$('.builder-tab').forEach(t => t.classList.toggle('is-active', t.dataset.tab === tab));
+  $$('.builder-tab-content').forEach(c => { c.hidden = (c.dataset.tabContent !== tab); });
+  // Render tab content lazily
+  if (tab === 'destination') renderTabDestination();
+  else if (tab === 'food') renderTabTopics('food');
+  else if (tab === 'experience') renderTabTopics('experience');
+  // AI tab body is just the chat thread which is always in DOM
+  // Toggle chat-form visibility
+  const form = $('#chat-form');
+  if (form) form.hidden = (tab !== 'ai');
+  // Scroll tab body to top
+  const body = $('#builder-tab-body');
+  if (body) body.scrollTop = 0;
+}
+
+function renderTabDestination() {
+  const root = $('[data-tab-content="destination"]');
+  if (!root) return;
+  if (state.builder.selectedArea) {
+    renderAreaSpots(root, state.builder.selectedArea);
+    return;
+  }
+  let html = `<p class="tab-hint">行きたい地域を選んでください。</p>`;
+  html += `<div class="area-grid">`;
+  AREAS_SORTED.forEach(({ area, region, count }) => {
+    const color = REGION_COLORS[region] || '#3D2817';
+    html += `<button type="button" class="area-tile" data-area="${escapeHtml(area)}">`;
+    html += `<span class="area-dot" style="background:${color}"></span>`;
+    html += `<span class="area-name">${escapeHtml(area)}</span>`;
+    html += `<span class="area-count">${count}件</span>`;
+    html += `</button>`;
+  });
+  html += `</div>`;
+  root.innerHTML = html;
+  root.querySelectorAll('[data-area]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.builder.selectedArea = btn.dataset.area;
+      renderTabDestination();
+      // Zoom map to the area
+      const spots = SPOTS_BY_AREA[btn.dataset.area] || [];
+      flyToSpots(spots.map(s => s.id));
+    });
+  });
+}
+
+function renderAreaSpots(root, area) {
+  const spots = SPOTS_BY_AREA[area] || [];
+  let html = `<button type="button" class="area-back-btn" id="area-back-btn">← エリア一覧</button>`;
+  html += `<h3 class="area-title">${escapeHtml(area)} のスポット</h3>`;
+  html += `<div class="area-spots">`;
+  spots.forEach(spot => {
+    const inPlan = isInPlan(spot.id);
+    html += `<article class="spot-listing ${spot.videoUrl ? 'has-video' : 'no-video'}">`;
+    if (spot.videoUrl) {
+      html += `<div class="spot-media spot-media-video"><video autoplay loop muted playsinline preload="metadata" poster="assets/cover-poster.jpg"><source src="${spot.videoUrl}" type="video/mp4"></video><span class="spot-media-badge">掲載パートナー</span></div>`;
+    } else {
+      html += `<div class="spot-media spot-media-icon" style="background:${spot.color}">${getIcon(spot.icon)}</div>`;
+    }
+    html += `<div class="spot-listing-body">`;
+    html += `<div class="spot-listing-head"><h3 class="spot-listing-name">${escapeHtml(spot.name)}</h3></div>`;
+    html += `<div class="spot-listing-meta"><span>📍 ${escapeHtml(spot.area)}</span>`;
+    if (spot.bestSeason && spot.bestSeason !== '通年') html += `<span class="spot-season-note">ベスト: ${escapeHtml(spot.bestSeason)}</span>`;
+    html += `</div>`;
+    html += `<p class="spot-listing-comment">${escapeHtml(spot.description)}</p>`;
+    html += `<div class="spot-listing-foot">`;
+    html += `<button type="button" class="spot-pan-btn" data-spot-pan="${spot.id}">📍 マップ</button>`;
+    if (inPlan) html += `<button type="button" class="plan-add-btn in-plan" disabled>✓ 追加済</button>`;
+    else html += `<button type="button" class="plan-add-btn" data-plan-add="${spot.id}">＋ 追加</button>`;
+    html += `</div></div></article>`;
+  });
+  html += `</div>`;
+  root.innerHTML = html;
+  $('#area-back-btn')?.addEventListener('click', () => {
+    state.builder.selectedArea = null;
+    renderTabDestination();
+  });
+  root.querySelectorAll('[data-spot-pan]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.spotPan;
+      const sp = SPOT_BY_ID[id];
+      if (sp?.coords) { map?.flyTo(sp.coords, 12, { duration: 0.6 }); markerById[id]?.openPopup(); }
+    });
+  });
+  root.querySelectorAll('[data-plan-add]').forEach(b => {
+    b.addEventListener('click', () => {
+      const id = b.dataset.planAdd;
+      if (isInPlan(id)) return;
+      addToPlan(id, state.builder.activeDayIdx);
+      toast(`DAY ${state.builder.activeDayIdx + 1} に追加しました`);
+      const sp = SPOT_BY_ID[id];
+      if (sp?.coords) map?.flyTo(sp.coords, 11, { duration: 0.6 });
+    });
+  });
+}
+
+function renderTabTopics(kind) {
+  const root = $(`[data-tab-content="${kind}"]`);
+  if (!root) return;
+  const topics = kind === 'food' ? TOPIC_FOODS : TOPIC_EXPERIENCES;
+  const cta = kind === 'food'
+    ? { hint: '気になる食べ物を選んでください (複数可)', label: '🧠 このグルメでAIに提案してもらう' }
+    : { hint: '気になる体験を選んでください (複数可)',   label: '🧠 この体験でAIに提案してもらう' };
+  let html = `<p class="tab-hint">${cta.hint}</p>`;
+  html += `<div class="picker-chips" data-group="${kind}">`;
+  topics.forEach(opt => {
+    html += `<button type="button" class="picker-chip" data-value="${escapeHtml(opt.v)}"><span class="picker-chip-label">${escapeHtml(opt.l)}</span></button>`;
+  });
+  html += `</div>`;
+  html += `<button type="button" class="picker-submit" data-topic-submit="${kind}" disabled>${cta.label}</button>`;
+  root.innerHTML = html;
+  root.querySelectorAll('.picker-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('is-selected');
+      const any = root.querySelector('.picker-chip.is-selected');
+      const submit = root.querySelector('.picker-submit');
+      if (submit) submit.disabled = !any;
+    });
+  });
+  root.querySelector('[data-topic-submit]')?.addEventListener('click', () => {
+    const selected = Array.from(root.querySelectorAll('.picker-chip.is-selected')).map(c => c.dataset.value);
+    if (!selected.length) return;
+    const prompt = kind === 'food'
+      ? `${selected.join('・')} を楽しめる北海道のスポットを提案してください。`
+      : `${selected.join('・')} を体験できる北海道のスポットを提案してください。`;
+    setActiveTab('ai');
     sendUserMessage(prompt);
   });
-}
-
-function updatePickerSubmitState() {
-  const picker = $('.picker');
-  if (!picker) return;
-  const mode = picker.dataset.mode;
-  const cfg = PICKERS[mode];
-  if (!cfg) return;
-  // All single-select groups must have a selection; multi-select groups need ≥1
-  const ok = cfg.sections.every(sec => {
-    const g = picker.querySelector(`[data-group="${sec.group}"]`);
-    return g && g.querySelectorAll('.picker-chip.is-selected').length > 0;
-  });
-  const submit = $('.picker-submit');
-  if (submit) submit.disabled = !ok;
-}
-
-function buildPickerPrompt() {
-  const picker = $('.picker');
-  if (!picker) return '';
-  const mode = picker.dataset.mode;
-  const get = (g) => Array.from(picker.querySelectorAll(`[data-group="${g}"] .picker-chip.is-selected`))
-    .map(c => c.dataset.value).filter(v => v);
-  switch (mode) {
-    case 'dates': {
-      const nights = get('nights')[0] || '';
-      const season = get('season')[0] || '';
-      const parts = [];
-      if (season) parts.push(season + 'の');
-      if (nights) parts.push(nights + 'で');
-      return `${parts.join('')}北海道旅行をしたいので、おすすめのスポットを提案してください。`;
-    }
-    case 'destination': {
-      const areas = get('area');
-      if (!areas.length) return '';
-      return `${areas.join('・')} のエリアで観光したいので、おすすめのスポットを提案してください。`;
-    }
-    case 'food': {
-      const foods = get('food');
-      if (!foods.length) return '';
-      return `${foods.join('・')} を楽しめる北海道旅行にしたいので、おすすめのスポット (名店・産地・周辺観光) を提案してください。`;
-    }
-    case 'experience': {
-      const exps = get('exp');
-      if (!exps.length) return '';
-      return `${exps.join('・')} を体験できる北海道旅行にしたいので、おすすめのスポットを提案してください。`;
-    }
-  }
-  return '';
 }
 
 // ─────────────────────────────────────────────
 // Chat UI
 // ─────────────────────────────────────────────
 function ensureChatThread() {
-  $('#chat-welcome')?.remove();
+  // When a chat message is being added, hide the intro placeholder
+  $('#ai-tab-intro')?.remove();
 }
 
 // Only auto-scroll the chat thread if the user is already near the bottom.
@@ -1218,6 +1314,9 @@ function reviewPlan() {
   if (planTotalCount() === 0) { toast('プランが空です。先にスポットを追加してください。'); return; }
   if (!getApiUrl()) { toast('AI機能が未設定です (プロキシURL)。'); return; }
   closePlannerDrawer();
+  // Make sure the user lands on the AI tab to see the response
+  if (state.flow !== 'builder') goToBuilder();
+  setActiveTab('ai');
   sendUserMessage('今組んでいるプランを講評してください。全体の印象、季節・天候の注意点、移動の効率、足りないジャンルがあれば教えてください。');
 }
 
@@ -1559,6 +1658,7 @@ function loadPlanFromHash() {
 document.addEventListener('DOMContentLoaded', () => {
   loadPlan();
   loadPlanFromHash(); // shared plan in URL overrides the saved one
+  loadTripDates();
   initMap();
   renderPlannerDrawer();
   updatePlanCount();
@@ -1578,11 +1678,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Capture welcome HTML for later restore via "別の例を見る"
-  captureWelcomeHTML();
+  // Screen 1 (dates) — chip selection + 次へ
+  wireDatesScreen();
 
-  // Welcome entry tiles (日程/目的地/グルメ/体験)
-  wireEntryTiles();
+  // Screen 2 (builder) — tabs + back button
+  $$('.builder-tab').forEach(t => {
+    t.addEventListener('click', () => setActiveTab(t.dataset.tab));
+  });
+  $('#builder-back-btn')?.addEventListener('click', () => switchScreen('dates'));
+
+  // Decide which screen to start on. If a previous trip is set in storage,
+  // jump straight to the builder; otherwise the user starts on dates.
+  if (state.tripDates) goToBuilder();
+  else switchScreen('dates');
 
   // Map toggle (header eye icon)
   $('#toggle-map')?.addEventListener('click', toggleMap);
